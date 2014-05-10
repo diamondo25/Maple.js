@@ -1,6 +1,31 @@
 {
-	"port": 8486,
+	"port": 8484,
 	"version": 83,
 	"subversion": "1",
-	"locale": 8
+	"locale": 8,
+	"worlds": {
+		"Scania": {
+			"id": 0,
+			"ribbon": 0,
+			"channels": 1,
+			"eventMessage": "Hello Thar",
+			"dialogs": [
+				{ "x": 30, "y": 40, "text": "CHOOSE THIS WORLD PL0X" }
+			
+			]
+		
+		},
+		"Bera": {
+			"id": 1,
+			"ribbon": 0,
+			"channels": 20,
+			"eventMessage": "Hello Thar",
+			"dialogs": [
+				{ "x": 0, "y": 0, "text": "CHOOSE THIS WORLD PL0X" }
+			
+			]
+		
+		}
+	
+	}
 }

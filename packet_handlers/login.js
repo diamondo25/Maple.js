@@ -33,30 +33,40 @@ PacketHandler.SetHandler(0x0001, function (socket, packet) {
 
 PacketHandler.SetHandler(0x000B, function (socket, packet) {
 	// Request worlds
-	var packet = new PacketWriter();
-	packet.writeUInt16(0x000A);
+	var packet;
 	
-	packet.writeUInt8(0);
-	packet.writeString('Scania');
-	packet.writeUInt8(1);
-	packet.writeString('EVENT LOL');
-	packet.writeUInt16(100);
-	packet.writeUInt16(100);
-	packet.writeUInt8(0);
-	
-	var channels = 10;
-	packet.writeUInt8(channels);
-	for (var i = 1; i <= channels; i++) {
-		packet.writeString('Scania-' + i);
-		packet.writeUInt32(429);
+	for (var worldName in ServerConfig.worlds) {
+		var worldinfo = ServerConfig.worlds[worldName];
+		packet = new PacketWriter();
+		packet.writeUInt16(0x000A);
+		
+		packet.writeUInt8(worldinfo.id);
+		packet.writeString(worldName);
+		packet.writeUInt8(worldinfo.ribbon);
+		packet.writeString(worldinfo.eventMessage);
+		packet.writeUInt16(100); // EXP Rate
+		packet.writeUInt16(100); // DROP Rate
 		packet.writeUInt8(0);
-		packet.writeUInt8(i - 1);
-		packet.writeUInt8(0);
+		
+		var channels = worldinfo.channels;
+		packet.writeUInt8(channels);
+		for (var i = 1; i <= channels; i++) {
+			packet.writeString(worldName + '-' + i);
+			packet.writeUInt32(429);
+			packet.writeUInt8(worldinfo.id);
+			packet.writeUInt8(i - 1);
+			packet.writeUInt8(0);
+		}
+		
+		packet.writeUInt16(worldinfo.dialogs.length);
+		for (var i = 0; i < worldinfo.dialogs.length; i++) {
+			var dialog = worldinfo.dialogs[i];
+			packet.writeUInt16(dialog.x);
+			packet.writeUInt16(dialog.y);
+			packet.writeString(dialog.text);
+		}
+		socket.sendPacket(packet);
 	}
-	
-	packet.writeUInt16(0);
-	socket.sendPacket(packet);
-	
 	
 	packet = new PacketWriter();
 	packet.writeUInt16(0x000A);

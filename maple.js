@@ -1,31 +1,30 @@
-var serverConfig = require('./config.json');
+global.ServerConfig = require('./config.json');
 
-var net = require('net');
 var mapleSocket = require('./net/socket.js');
 global.PacketWriter = require('./net/PacketWriter.js').PacketWriter;
 global.PacketReader = require('./net/PacketReader.js').PacketReader;
 global.PacketHandler = require('./net/PacketHandler.js');
 
 
-var server = net.createServer(function (socket) {
-	socket.clientIV = new Uint8Array([0, 1, 2, 3]);
-	socket.serverIV = new Uint8Array([4, 3, 2, 1]);
+var server = require('net').createServer(function (socket) {
+	socket.clientSequence = new Uint8Array([0, 1, 2, 3]);
+	socket.serverSequence = new Uint8Array([4, 3, 2, 1]);
 	socket.header = true;
 	socket.nextBlockLen = 4;
 	socket.buffer = '';
 	
 	socket.sendPacket = function (packet) {
+		// TODO: Clean up...
 		var buffer = new Buffer(packet.writtenData + 4);
 		
-		mapleSocket.generateHeader(buffer, this.serverIV, packet.writtenData, -(serverConfig.version + 1));
+		mapleSocket.generateHeader(buffer, this.serverSequence, packet.writtenData, -(ServerConfig.version + 1));
 		
 		var copyData = new Buffer(packet.writtenData);
 		packet.buffer.copy(copyData);
-		mapleSocket.encryptData(copyData, this.serverIV);
-		this.serverIV = mapleSocket.recalculateIV(this.serverIV);
+		mapleSocket.encryptData(copyData, this.serverSequence);
+		this.serverSequence = mapleSocket.recalculateIV(this.serverSequence);
 		
 		copyData.copy(buffer, 4);
-		console.log(buffer);
 		this.write(buffer);
 	};
 	
@@ -34,7 +33,7 @@ var server = net.createServer(function (socket) {
 	
 	socket.on('data', function (data) {
 		socket.pause();
-		socket.buffer += data.toString('binary');
+		socket.buffer += data.toString('binary'); // There must be a better way for this
 		
 		while (socket.nextBlockLen <= socket.buffer.length) {
 			var readingBlock = socket.nextBlockLen;
@@ -53,19 +52,17 @@ var server = net.createServer(function (socket) {
 	});
 
 	
-	{
-		// Send handshake
-		var packet = new PacketWriter();
-		packet.writeUInt16(2 + 2 + serverConfig.subversion.length + 4 + 4 + 1);
-		packet.writeUInt16(serverConfig.version);
-		packet.writeString(serverConfig.subversion);
-		packet.writeBytes(socket.clientIV);
-		packet.writeBytes(socket.serverIV);
-		packet.writeUInt8(serverConfig.locale);
-		
-		socket.write(packet.getData());
-		
-	}
+	// Send handshake
+	var packet = new PacketWriter();
+	packet.writeUInt16(2 + 2 + ServerConfig.subversion.length + 4 + 4 + 1);
+	packet.writeUInt16(ServerConfig.version);
+	packet.writeString(ServerConfig.subversion);
+	packet.writeBytes(socket.clientSequence);
+	packet.writeBytes(socket.serverSequence);
+	packet.writeUInt8(ServerConfig.locale);
+	
+	socket.write(packet.getData());
+
 });
 
 
@@ -81,8 +78,8 @@ function HandleRawData(socket) {
 	else {
 		socket.nextBlockLen = 4;
 	
-		mapleSocket.decryptData(block, socket.clientIV);
-		socket.clientIV = mapleSocket.recalculateIV(socket.clientIV);
+		mapleSocket.decryptData(block, socket.clientSequence);
+		socket.clientSequence = mapleSocket.recalculateIV(socket.clientSequence);
 		
 		var reader = new PacketReader(block);
 		PacketHandler.GetHandler(reader.readUInt16())(socket, reader);
@@ -91,7 +88,7 @@ function HandleRawData(socket) {
 	socket.header = !socket.header;
 }
 
-console.log('Starting Maple.js Server (V' + serverConfig.version + '.' + serverConfig.subversion + ', ' + serverConfig.locale + ')...');
+console.log('Starting Maple.js Server (V' + ServerConfig.version + '.' + ServerConfig.subversion + ', ' + ServerConfig.locale + ')...');
 
 console.log('Loading packet handlers...');
 
@@ -101,6 +98,6 @@ require('fs').readdirSync('./packet_handlers').forEach(function(file) {
 	require('./packet_handlers/' + file);
 });
 
-server.listen(serverConfig.port);
+server.listen(ServerConfig.port);
 
-console.log('Waiting for people on port ' + serverConfig.port + '...');
+console.log('Waiting for people on port ' + ServerConfig.port + '...');

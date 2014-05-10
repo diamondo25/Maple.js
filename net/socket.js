@@ -1,13 +1,13 @@
-exports.decryptData = function (pData, pIV) {
-	this.aesTransform(pData, pIV);
+exports.decryptData = function (pData, pSequence) {
+	this.aesTransform(pData, pSequence);
 	
 	this.decryptMapleCrypto(pData);
 };
 
-exports.encryptData = function (pData, pIV) {
+exports.encryptData = function (pData, pSequence) {
 	this.encryptMapleCrypto(pData);
 	
-	this.aesTransform(pData, pIV);
+	this.aesTransform(pData, pSequence);
 };
 
 exports.getLengthFromHeader = function (pData) {
@@ -16,8 +16,8 @@ exports.getLengthFromHeader = function (pData) {
 };
 
 
-exports.generateHeader = function (pData, pIV, pLength, pVersion) {
-	var a = pIV[2] | pIV[3] << 8;
+exports.generateHeader = function (pData, pSequence, pLength, pVersion) {
+	var a = pSequence[2] | pSequence[3] << 8;
 	a ^= pVersion;
 	var b = a ^ pLength;
 	
@@ -171,37 +171,15 @@ var aesKey = new Buffer([
 	0x52, 0x00, 0x00, 0x00
 ]);
 
-var crypto = require('crypto');
-var aes = crypto.createCipheriv('aes-256-ecb', aesKey, '');
-/*
-var temp = crypto.getCiphers();
-for (var i = 0; i < temp.length; i++) {
-	try {
-		var cr = crypto.createCipheriv(temp[i], aesKey, '');
-		
-		var tmp = new Buffer([
-			1,2,3,4,
-			1,2,3,4,
-			1,2,3,4,
-			1,2,3,4
-		]);
-		tmp = cr.update(tmp);
-		var tmp2 = '';
-		for (var j = 0; j < 16; j++)
-			tmp2 += tmp[j] + ' ';
-		console.log(tmp2);
-		console.log('Testing crypto ' + temp[i]);
-	}
-	catch (ex) { }
-}
-*/
-exports.aesTransform = function (pData, pIV) {
+var aes = require('crypto').createCipheriv('aes-256-ecb', aesKey, '');
+
+exports.aesTransform = function (pData, pSequence) {
 	var length = pData.length;
 	var ivCopy = new Buffer([
-		pIV[0], pIV[1], pIV[2], pIV[3], 
-		pIV[0], pIV[1], pIV[2], pIV[3], 
-		pIV[0], pIV[1], pIV[2], pIV[3], 
-		pIV[0], pIV[1], pIV[2], pIV[3]
+		pSequence[0], pSequence[1], pSequence[2], pSequence[3], 
+		pSequence[0], pSequence[1], pSequence[2], pSequence[3], 
+		pSequence[0], pSequence[1], pSequence[2], pSequence[3], 
+		pSequence[0], pSequence[1], pSequence[2], pSequence[3]
 	]);
 	
 	
