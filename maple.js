@@ -1,15 +1,10 @@
-var serverConfig = {
-	'port': 8486,
-	'version': 83,
-	'subversion': '1',
-	'locale': 8
-};
+var serverConfig = require('./config.json');
 
 var net = require('net');
 var mapleSocket = require('./net/socket.js');
-var PacketWriter = global.PacketWriter = require('./net/PacketWriter.js').PacketWriter;
-var PacketReader = global.PacketReader = require('./net/PacketReader.js').PacketReader;
-var PacketHandler = require('./packet_handlers/PacketHandler.js');
+global.PacketWriter = require('./net/PacketWriter.js').PacketWriter;
+global.PacketReader = require('./net/PacketReader.js').PacketReader;
+global.PacketHandler = require('./net/PacketHandler.js');
 
 
 var server = net.createServer(function (socket) {
@@ -96,9 +91,9 @@ function HandleRawData(socket) {
 	socket.header = !socket.header;
 }
 
-console.log('Starting DMS Server (' + serverConfig.version + '; ' + serverConfig.subversion + '; ' + serverConfig.locale + ')...');
+console.log('Starting Maple.js Server (V' + serverConfig.version + '.' + serverConfig.subversion + ', ' + serverConfig.locale + ')...');
 
-console.log('1. Loading packet handlers');
+console.log('Loading packet handlers...');
 
 require('fs').readdirSync('./packet_handlers').forEach(function(file) {
 	if (file.lastIndexOf('.js') != file.length - 3) return;
@@ -106,6 +101,6 @@ require('fs').readdirSync('./packet_handlers').forEach(function(file) {
 	require('./packet_handlers/' + file);
 });
 
-server.listen(8486, '127.0.0.1');
+server.listen(serverConfig.port);
 
-console.log('Waiting for people...');
+console.log('Waiting for people on port ' + serverConfig.port + '...');
