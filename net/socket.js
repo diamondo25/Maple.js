@@ -27,7 +27,7 @@ exports.generateHeader = function (pData, pSequence, pLength, pVersion) {
 	pData[3] = (b >>> 8) & 0xFF;
 };
 
-var ivShiftingKey = new Uint8Array([
+var sequenceShiftingKey = new Uint8Array([
 	0xEC, 0x3F, 0x77, 0xA4, 0x45, 0xD0, 0x71, 0xBF, 0xB7, 0x98, 0x20, 0xFC, 0x4B, 0xE9, 0xB3, 0xE1,
 	0x5C, 0x22, 0xF7, 0x0C, 0x44, 0x1B, 0x81, 0xBD, 0x63, 0x8D, 0xD4, 0xC3, 0xF2, 0x10, 0x19, 0xE0,
 	0xFB, 0xA1, 0x6E, 0x66, 0xEA, 0xAE, 0xD6, 0xCE, 0x06, 0x18, 0x4E, 0xEB, 0x78, 0x95, 0xDB, 0xBA,
@@ -46,28 +46,28 @@ var ivShiftingKey = new Uint8Array([
 	0x84, 0x7F, 0x61, 0x1E, 0xCF, 0xC5, 0xD1, 0x56, 0x3D, 0xCA, 0xF4, 0x05, 0xC6, 0xE5, 0x08, 0x49
 ]);
 
-exports.recalculateIV = function (pCurrentIV) {
-	var newIV = new Uint8Array([0xF2, 0x53, 0x50, 0xC6]);
+exports.morphSequence = function (pCurrentSequence) {
+	var newSequence = new Uint8Array([0xF2, 0x53, 0x50, 0xC6]);
 	
 	for (var i = 0; i < 4; i++) {
-		var input = pCurrentIV[i];
-		var tableInput = ivShiftingKey[input];
-		newIV[0] += (ivShiftingKey[newIV[1]] - input);
-		newIV[1] -= (newIV[2] ^ tableInput);
-		newIV[2] ^= (ivShiftingKey[newIV[3]] + input);
-		newIV[3] -= (newIV[0] - tableInput);
+		var input = pCurrentSequence[i];
+		var tableInput = sequenceShiftingKey[input];
+		newSequence[0] += (sequenceShiftingKey[newSequence[1]] - input);
+		newSequence[1] -= (newSequence[2] ^ tableInput);
+		newSequence[2] ^= (sequenceShiftingKey[newSequence[3]] + input);
+		newSequence[3] -= (newSequence[0] - tableInput);
 
-		var val = (newIV[0] | (newIV[1] & 0xFF) << 8 | (newIV[2] & 0xFF) << 16 | (newIV[3] & 0xFF) << 24) >>> 0;
+		var val = (newSequence[0] | (newSequence[1] & 0xFF) << 8 | (newSequence[2] & 0xFF) << 16 | (newSequence[3] & 0xFF) << 24) >>> 0;
 		var val2 = val >>> 0x1D;
 		val = (val << 0x03) >>> 0;
 		val2 |= val;
-		newIV[0] = (val2 & 0xFF);
-		newIV[1] = ((val2 >> 8) & 0xFF);
-		newIV[2] = ((val2 >> 16) & 0xFF);
-		newIV[3] = ((val2 >> 24) & 0xFF);
+		newSequence[0] = (val2 & 0xFF);
+		newSequence[1] = ((val2 >> 8) & 0xFF);
+		newSequence[2] = ((val2 >> 16) & 0xFF);
+		newSequence[3] = ((val2 >> 24) & 0xFF);
 	}
 	
-	return newIV;
+	return newSequence;
 };
 
 function RollLeft(value, shift) {
@@ -175,7 +175,7 @@ var aes = require('crypto').createCipheriv('aes-256-ecb', aesKey, '');
 
 exports.aesTransform = function (pData, pSequence) {
 	var length = pData.length;
-	var ivCopy = new Buffer([
+	var sequenceCopy = new Buffer([
 		pSequence[0], pSequence[1], pSequence[2], pSequence[3], 
 		pSequence[0], pSequence[1], pSequence[2], pSequence[3], 
 		pSequence[0], pSequence[1], pSequence[2], pSequence[3], 
@@ -186,14 +186,14 @@ exports.aesTransform = function (pData, pSequence) {
 	for (var i = 0; i < length; ) {
 		var block = Math.min(length - i, (i == 0 ? 1456 : 1460));
 		
-		var tmp = ivCopy.slice();
+		var xorKey = sequenceCopy.slice();
 		
 		for (var j = 0; j < block; j++) {
 			if ((i + j) % 16 == 0) {
-				tmp = aes.update(tmp);
+				xorKey = aes.update(xorKey);
 			}
 			
-			pData[i + j] ^= tmp[j % 16];
+			pData[i + j] ^= xorKey[j % 16];
 		}
 
 		i += block;

@@ -22,7 +22,7 @@ var server = require('net').createServer(function (socket) {
 		var copyData = new Buffer(packet.writtenData);
 		packet.buffer.copy(copyData);
 		mapleSocket.encryptData(copyData, this.serverSequence);
-		this.serverSequence = mapleSocket.recalculateIV(this.serverSequence);
+		this.serverSequence = mapleSocket.morphSequence(this.serverSequence);
 		
 		copyData.copy(buffer, 4);
 		this.write(buffer);
@@ -79,7 +79,7 @@ function HandleRawData(socket) {
 		socket.nextBlockLen = 4;
 	
 		mapleSocket.decryptData(block, socket.clientSequence);
-		socket.clientSequence = mapleSocket.recalculateIV(socket.clientSequence);
+		socket.clientSequence = mapleSocket.morphSequence(socket.clientSequence);
 		
 		var reader = new PacketReader(block);
 		PacketHandler.GetHandler(reader.readUInt16())(socket, reader);
