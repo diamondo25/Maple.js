@@ -12,7 +12,8 @@
 			"dialogs": [
 				{ "x": 30, "y": 40, "text": "CHOOSE THIS WORLD PL0X" }
 			
-			]
+			],
+			"characterCreationDisabled": false
 		
 		},
 		"Bera": {
@@ -23,7 +24,8 @@
 			"dialogs": [
 				{ "x": 0, "y": 0, "text": "CHOOSE THIS WORLD PL0X" }
 			
-			]
+			],
+			"characterCreationDisabled": false
 		
 		}
 	

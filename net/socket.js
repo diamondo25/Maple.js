@@ -1,22 +1,22 @@
-exports.decryptData = function (pData, pSequence) {
-	this.aesTransform(pData, pSequence);
+exports.DecryptData = function (pData, pSequence) {
+	this.AESTransform(pData, pSequence);
 	
-	this.decryptMapleCrypto(pData);
+	this.DecryptMapleCrypto(pData);
 };
 
-exports.encryptData = function (pData, pSequence) {
-	this.encryptMapleCrypto(pData);
+exports.EncryptData = function (pData, pSequence) {
+	this.EncryptMapleCrypto(pData);
 	
-	this.aesTransform(pData, pSequence);
+	this.AESTransform(pData, pSequence);
 };
 
-exports.getLengthFromHeader = function (pData) {
+exports.GetLengthFromHeader = function (pData) {
 	var length = pData[0] | pData[1] << 8 | pData[2] << 16 | pData[3] << 24;
 	return ((length >>> 16) ^ (length & 0xFFFF)) & 0xFFFF;
 };
 
 
-exports.generateHeader = function (pData, pSequence, pLength, pVersion) {
+exports.GenerateHeader = function (pData, pSequence, pLength, pVersion) {
 	var a = pSequence[2] | pSequence[3] << 8;
 	a ^= pVersion;
 	var b = a ^ pLength;
@@ -46,7 +46,7 @@ var sequenceShiftingKey = new Uint8Array([
 	0x84, 0x7F, 0x61, 0x1E, 0xCF, 0xC5, 0xD1, 0x56, 0x3D, 0xCA, 0xF4, 0x05, 0xC6, 0xE5, 0x08, 0x49
 ]);
 
-exports.morphSequence = function (pCurrentSequence) {
+exports.MorphSequence = function (pCurrentSequence) {
 	var newSequence = new Uint8Array([0xF2, 0x53, 0x50, 0xC6]);
 	
 	for (var i = 0; i < 4; i++) {
@@ -70,19 +70,19 @@ exports.morphSequence = function (pCurrentSequence) {
 	return newSequence;
 };
 
-function RollLeft(value, shift) {
-	var overflow = ((value >>> 0) << (shift % 8)) >>> 0;
+function RollLeft(pValue, pShift) {
+	var overflow = ((pValue >>> 0) << (pShift % 8)) >>> 0;
 	var ret = ((overflow & 0xFF) | (overflow >>> 8)) & 0xFF;
 	return ret;
 }
 
-function RollRight(value, shift) {
-	var overflow = (((value >>> 0) << 8) >>> (shift % 8));
+function RollRight(pValue, pShift) {
+	var overflow = (((pValue >>> 0) << 8) >>> (pShift % 8));
 	var ret = ((overflow & 0xFF) | (overflow >>> 8)) & 0xFF;
 	return ret;
 }
 
-exports.encryptMapleCrypto = function (pData) {	
+exports.EncryptMapleCrypto = function (pData) {	
 	var length = pData.length, j;
 	var a, c;
 	for (var i = 0; i < 3; i++)
@@ -118,7 +118,7 @@ exports.encryptMapleCrypto = function (pData) {
 	}
 };
 
-exports.decryptMapleCrypto = function (pData) {
+exports.DecryptMapleCrypto = function (pData) {
 	var length = pData.length, j;
 	var a, b, c;
 	for (var i = 0; i < 3; i++)
@@ -173,7 +173,7 @@ var aesKey = new Buffer([
 
 var aes = require('crypto').createCipheriv('aes-256-ecb', aesKey, '');
 
-exports.aesTransform = function (pData, pSequence) {
+exports.AESTransform = function (pData, pSequence) {
 	var length = pData.length;
 	var sequenceCopy = new Buffer([
 		pSequence[0], pSequence[1], pSequence[2], pSequence[3], 
@@ -189,7 +189,7 @@ exports.aesTransform = function (pData, pSequence) {
 		var xorKey = sequenceCopy.slice();
 		
 		for (var j = 0; j < block; j++) {
-			if ((i + j) % 16 == 0) {
+			if ((j % 16) == 0) {
 				xorKey = aes.update(xorKey);
 			}
 			

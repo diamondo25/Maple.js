@@ -1,101 +1,155 @@
 global.ServerConfig = require('./config.json');
-
 var mapleSocket = require('./net/socket.js');
 global.PacketWriter = require('./net/PacketWriter.js').PacketWriter;
 global.PacketReader = require('./net/PacketReader.js').PacketReader;
 global.PacketHandler = require('./net/PacketHandler.js');
 
+require('./helpers.js');
 
-var server = require('net').createServer(function (socket) {
-	socket.clientSequence = new Uint8Array([0, 1, 2, 3]);
-	socket.serverSequence = new Uint8Array([4, 3, 2, 1]);
-	socket.header = true;
-	socket.nextBlockLen = 4;
-	socket.buffer = '';
+global.ConnectedClients = [];
+
+var server = require('net').createServer(function (pSocket) {
+	console.log('Got connection!');
 	
-	socket.sendPacket = function (packet) {
-		// TODO: Clean up...
-		var buffer = new Buffer(packet.writtenData + 4);
+	pSocket.clientSequence = new Uint8Array([0, 1, 2, 3]);
+	pSocket.serverSequence = new Uint8Array([4, 3, 2, 1]);
+	pSocket.ponged = true;
+	pSocket.header = true;
+	pSocket.nextBlockLen = 4;
+	pSocket.buffer = '';
+	ConnectedClients.push(pSocket);
+	
+	pSocket.SendPacket = function (pPacket) {
+		var buffer = new Buffer(4);
+		mapleSocket.GenerateHeader(buffer, this.serverSequence, pPacket.writtenData, -(ServerConfig.version + 1));
+		this.write(buffer);
 		
-		mapleSocket.generateHeader(buffer, this.serverSequence, packet.writtenData, -(ServerConfig.version + 1));
+		buffer = pPacket.GetBufferCopy();
+		mapleSocket.EncryptData(buffer, this.serverSequence);
 		
-		var copyData = new Buffer(packet.writtenData);
-		packet.buffer.copy(copyData);
-		mapleSocket.encryptData(copyData, this.serverSequence);
-		this.serverSequence = mapleSocket.morphSequence(this.serverSequence);
+		this.serverSequence = mapleSocket.MorphSequence(this.serverSequence);
 		
-		copyData.copy(buffer, 4);
 		this.write(buffer);
 	};
 	
-	console.log('Got connection!');
 	
 	
-	socket.on('data', function (data) {
-		socket.pause();
-		socket.buffer += data.toString('binary'); // There must be a better way for this
+	pSocket.on('data', function (pData) {
+		pSocket.pause();
+		pSocket.buffer += pData.toString('binary'); // There must be a better way for this
 		
-		while (socket.nextBlockLen <= socket.buffer.length) {
-			var readingBlock = socket.nextBlockLen;
+		while (pSocket.nextBlockLen <= pSocket.buffer.length) {
+			var readingBlock = pSocket.nextBlockLen;
 			
-			HandleRawData(socket);
-			socket.buffer = socket.buffer.substr(readingBlock);
+			HandleRawData(pSocket);
+			pSocket.buffer = pSocket.buffer.substr(readingBlock);
 		}
 		
-		socket.resume();
+		pSocket.resume();
 	});
-	socket.on('close', function () {
+	pSocket.on('close', function () {
 		console.log('Connection closed.');
+		ConnectedClients.pop(this);
 	});
-	socket.on('error', function () {
+	pSocket.on('error', function () {
 		console.log('Error?');
 	});
 
 	
 	// Send handshake
 	var packet = new PacketWriter();
-	packet.writeUInt16(2 + 2 + ServerConfig.subversion.length + 4 + 4 + 1);
-	packet.writeUInt16(ServerConfig.version);
-	packet.writeString(ServerConfig.subversion);
-	packet.writeBytes(socket.clientSequence);
-	packet.writeBytes(socket.serverSequence);
-	packet.writeUInt8(ServerConfig.locale);
+	packet.WriteUInt16(2 + 2 + ServerConfig.subversion.length + 4 + 4 + 1);
+	packet.WriteUInt16(ServerConfig.version);
+	packet.WriteString(ServerConfig.subversion);
+	packet.WriteBytes(pSocket.clientSequence);
+	packet.WriteBytes(pSocket.serverSequence);
+	packet.WriteUInt8(ServerConfig.locale);
 	
-	socket.write(packet.getData());
+	pSocket.write(packet.GetBufferCopy());
 
 });
 
 
-function HandleRawData(socket) {
-	var data = new Buffer(socket.buffer, 'binary');
+function HandleRawData(pSocket) {
+	var data = new Buffer(pSocket.buffer, 'binary');
 
-	var block = new Buffer(socket.nextBlockLen);
+	var block = new Buffer(pSocket.nextBlockLen);
 	data.copy(block);
 	
-	if (socket.header) {
-		socket.nextBlockLen = mapleSocket.getLengthFromHeader(block);
+	if (pSocket.header) {
+		pSocket.nextBlockLen = mapleSocket.GetLengthFromHeader(block);
 	}
 	else {
-		socket.nextBlockLen = 4;
+		pSocket.nextBlockLen = 4;
 	
-		mapleSocket.decryptData(block, socket.clientSequence);
-		socket.clientSequence = mapleSocket.morphSequence(socket.clientSequence);
+		mapleSocket.DecryptData(block, pSocket.clientSequence);
+		pSocket.clientSequence = mapleSocket.MorphSequence(pSocket.clientSequence);
 		
 		var reader = new PacketReader(block);
-		PacketHandler.GetHandler(reader.readUInt16())(socket, reader);
+		PacketHandler.GetHandler(reader.ReadUInt16())(pSocket, reader);
 	}
 	
-	socket.header = !socket.header;
+	pSocket.header = !pSocket.header;
 }
 
 console.log('Starting Maple.js Server (V' + ServerConfig.version + '.' + ServerConfig.subversion + ', ' + ServerConfig.locale + ')...');
 
+console.log('Loading objects...');
+
+require('fs').readdirSync('./objects').forEach(function (pFileName) {
+	require('./objects/' + pFileName);
+	console.log(' - Objects in ' + pFileName + ' loaded');
+});
+
 console.log('Loading packet handlers...');
 
-require('fs').readdirSync('./packet_handlers').forEach(function(file) {
-	if (file.lastIndexOf('.js') != file.length - 3) return;
-	console.log('Loading ' + file);
-	require('./packet_handlers/' + file);
+require('fs').readdirSync('./packet_handlers').forEach(function (pFileName) {
+	require('./packet_handlers/' + pFileName);
+	console.log(' - Packet handlers in ' + pFileName + ' loaded');
+});
+
+
+console.log('Starting pinger');
+
+setInterval(function () {
+	var clientsCopy = ConnectedClients.slice();
+	var packet = new PacketWriter(0x0011);
+	
+	for (var i = 0; i < clientsCopy.length; i++) {
+		try {
+			var client = clientsCopy[i];
+			if (client.ponged == false) {
+				console.log('Terminated client');
+				client.end(); // Exterminate.
+				continue;
+			}
+			client.ponged = false;
+			client.SendPacket(packet);
+		}
+		catch (ex) {
+			console.log(ex);
+		}
+	}
+}, 15000);
+
+process.on('SIGINT', function() {
+	var clientsCopy = ConnectedClients.slice();
+	var i;
+	for (i = 0; i < clientsCopy.length; i++) {
+		try {
+			clientsCopy[i].end();
+		}
+		catch (ex) {
+			console.log(ex);
+		}
+	}
+	console.log('Kicked ' + i + ' clients');
+	console.log('TERMINATE');
+	process.exit();
+});
+
+PacketHandler.SetHandler(0x0018, function (pSocket, pReader) {
+	pSocket.ponged = true;
 });
 
 server.listen(ServerConfig.port);

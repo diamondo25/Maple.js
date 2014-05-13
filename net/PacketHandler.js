@@ -1,18 +1,18 @@
 var handlers = {};
 
-function DummyHandler(socket, packet) {
-	packet.offset = 0;
-	console.log('Unhandled packet: ' + packet.readUInt16().toString(16));
-	console.log(packet.buffer);
+function DummyHandler(pSocket, pPacket) {
+	pPacket.offset = 0;
+	console.log('Unhandled packet: ' + pPacket.ReadUInt16().toString(16));
+	console.log(pPacket.buffer);
 }
 
-exports.GetHandler = function (opcode) {
-	if (opcode in handlers) return handlers[opcode];
+exports.GetHandler = function (pOpCode) {
+	if (pOpCode in handlers) return handlers[pOpCode];
 	return DummyHandler;
 };
 
-exports.SetHandler = function (opcode, callback) {
-	handlers[opcode] = callback;
+exports.SetHandler = function (pOpCode, pCallback) {
+	handlers[pOpCode] = pCallback;
 	
-	console.log('Registered handler for 0x' + opcode.toString(16));
+	console.log('Registered handler for 0x' + pOpCode.toString(16));
 };
