@@ -1,25 +1,36 @@
 {
-	"port": 8484,
 	"version": 83,
 	"subversion": "1",
 	"locale": 8,
+	"databaseConnectionString": "mongodb://localhost/maplejs",
+	"loginservers": [
+		{
+			"privateIP": "127.0.0.1",
+			"publicIP": "83.80.148.175",
+			"port": 8484
+		}	
+	],
 	"worlds": {
 		"Scania": {
+			"privateIP": "127.0.0.1",
+			"publicIP": "83.80.148.175",
+			"portStart": 8500,
 			"id": 0,
-			"ribbon": 0,
+			"ribbon": 2,
 			"channels": 1,
-			"eventMessage": "Hello Thar",
-			"dialogs": [
-				{ "x": 30, "y": 40, "text": "CHOOSE THIS WORLD PL0X" }
-			
+			"eventMessage": "",
+			"dialogs": [			
 			],
 			"characterCreationDisabled": false
 		
 		},
 		"Bera": {
+			"privateIP": "127.0.0.1",
+			"publicIP": "83.80.148.175",
+			"portStart": 8520,
 			"id": 1,
 			"ribbon": 0,
-			"channels": 20,
+			"channels": 1,
 			"eventMessage": "Hello Thar",
 			"dialogs": [
 				{ "x": 0, "y": 0, "text": "CHOOSE THIS WORLD PL0X" }

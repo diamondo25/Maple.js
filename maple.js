@@ -4,6 +4,9 @@ global.PacketWriter = require('./net/PacketWriter.js').PacketWriter;
 global.PacketReader = require('./net/PacketReader.js').PacketReader;
 global.PacketHandler = require('./net/PacketHandler.js');
 
+var memwatch = require('memwatch');
+memwatch.on('leak', function(info) { console.warn(info); });
+
 require('./helpers.js');
 nx = require('node-nx');
 global.DataFiles = {
@@ -165,8 +168,3 @@ PacketHandler.SetHandler(0x0018, function (pSocket, pReader) {
 server.listen(ServerConfig.port);
 
 console.log('Waiting for people on port ' + ServerConfig.port + '...');
-
-
-var character = new Character();
-character.RandomizeLook();
-console.log(character);

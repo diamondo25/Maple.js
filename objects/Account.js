@@ -2,7 +2,7 @@ global.Account = function Account(pValues) {
 	pValues = pValues || {};
 	
 	this.id = pValues.id || -1;
-	this.name = pValues.name || 'UninitializedUser';
+	this.name = pValues.name || 'UnkUser';
 	this.female = pValues.female || false;
 	this.gradeCode = pValues.gradeCode || 0;
 	this.countryId = pValues.countryId || 0;

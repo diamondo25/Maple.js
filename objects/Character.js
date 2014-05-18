@@ -7,9 +7,12 @@ global.Character = function Character(pValues) {
 	this.eyes = pValues.eyes || 20001;
 	this.hair = pValues.hair || 30876;
 	
+	this.mesos = pValues.mesos || 123456789;
+	
 	this.mapId = pValues.map || 0;
 	this.mapPos = pValues.mapPos || 0;
 	
+	this.maxSlots = new Uint8Array([96, 96, 96, 96, 96]);
 	this.inventories = new Array(5);
 	this.inventories[0] = {};
 	this.inventories[1] = {};
@@ -25,19 +28,19 @@ global.Character = function Character(pValues) {
 	pValues.stats = pValues.stats || {};
 	this.stats = {
 		level: pValues.stats.level || 1,
-		job: pValues.stats.job || 0,
+		job: pValues.stats.job || 510,
 		str: pValues.stats.str || 0,
 		dex: pValues.stats.dex || 0,
 		int: pValues.stats.int || 0,
 		luk: pValues.stats.luk || 0,
-		hp: pValues.stats.hp || 0,
-		mhp: pValues.stats.mhp || 0,
-		mp: pValues.stats.mp || 0,
-		mmp: pValues.stats.mmp || 0,
+		hp: pValues.stats.hp || 50,
+		mhp: pValues.stats.mhp || 50,
+		mp: pValues.stats.mp || 50,
+		mmp: pValues.stats.mmp || 50,
 		ap: pValues.stats.ap || 0,
 		sp: pValues.stats.sp || 0,
 		exp: pValues.stats.exp || 0,
-		fame: pValues.stats.fame || 0
+		fame: pValues.stats.fame || 999999
 	};
 	
 	this.AddStats = function (pPacket) {
@@ -62,7 +65,7 @@ global.Character = function Character(pValues) {
 		pPacket.WriteUInt16(this.stats.mhp); 
 		pPacket.WriteUInt16(this.stats.mp);
 		pPacket.WriteUInt16(this.stats.mmp); 
-		pPacket.WriteUInt16(this.stats.ap);
+		pPacket.WriteUInt16(this.stats.ap); // Byte if evan?
 		pPacket.WriteUInt16(this.stats.sp);
 		pPacket.WriteUInt32(this.stats.exp);
 		pPacket.WriteUInt16(this.stats.fame);
@@ -79,7 +82,7 @@ global.Character = function Character(pValues) {
 		pPacket.WriteUInt8(this.skin);
 		pPacket.WriteUInt32(this.eyes);
 		
-		pPacket.WriteUInt8();
+		pPacket.WriteUInt8(0);
 		pPacket.WriteUInt32(this.hair);
 	
 		for (var i = 0; i < 52; i++) {

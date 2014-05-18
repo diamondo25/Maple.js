@@ -1,47 +1,16 @@
-PacketHandler.SetHandler(0x0001, function (pSocket, pReader) {
-	console.log('LoginPacket');
-	var username = pReader.ReadString();
-	var password = pReader.ReadString();
-
-	
-	var account = new Account();
-	
-	var packet = new global.PacketWriter(0x0000);
-	
-	if (account.banResetDate !== null) {
-		packet.WriteUInt16(2);
-		packet.WriteUInt32(0);
-		packet.WriteUInt8(account.banReason);
-		packet.WriteDate(account.banResetDate);
-	}
-	else {
-		packet.WriteUInt16(0);
-		packet.WriteUInt32(0);
-		
-		packet.WriteUInt32(account.id); // userid
-		packet.WriteUInt8(0);
-		packet.WriteUInt8(0x40);
-		packet.WriteUInt8(0);
-		packet.WriteUInt8(0);
-		packet.WriteString(account.name);
-		packet.WriteUInt8(0);
-		packet.WriteUInt8(account.muteReason);
-		packet.WriteDate(account.muteResetDate);
-		
-		packet.WriteDate(account.creationDate);
-		
-		packet.WriteUInt32(0);
-		
-		// PIC info
-		packet.WriteUInt8(true);
-		packet.WriteUInt8(2);
-	}
-	pSocket.SendPacket(packet);
-	
-});
+function CheckIfValid(pSocket) {
+	if (!pSocket.account) return false;
+	return true;
+}
 
 var showWorldsPacketHandler = function (pSocket, pReader) {
 	// Request worlds
+	
+	if (!pSocket.account) {
+		pSocket.Disconnect();
+		return;
+	}
+	
 	var packet;
 	
 	for (var worldName in ServerConfig.worlds) {
@@ -60,7 +29,7 @@ var showWorldsPacketHandler = function (pSocket, pReader) {
 		packet.WriteUInt8(channels);
 		for (var i = 1; i <= channels; i++) {
 			packet.WriteString(worldName + '-' + i);
-			packet.WriteUInt32(0);
+			packet.WriteUInt32(13132); // Online players
 			packet.WriteUInt8(world.id);
 			packet.WriteUInt8(i - 1);
 			packet.WriteUInt8(0);
@@ -88,6 +57,12 @@ PacketHandler.SetHandler(0x000B, showWorldsPacketHandler);
 
 PacketHandler.SetHandler(0x0006, function (pSocket, pReader) {
 	// Request world state
+	
+	if (!CheckIfValid(pSocket)) {
+		pSocket.Disconnect();
+		return;
+	}
+	
 	var packet = new PacketWriter(0x0003);
 	packet.WriteUInt8(0);
 	packet.WriteUInt8(0);
@@ -97,6 +72,12 @@ PacketHandler.SetHandler(0x0006, function (pSocket, pReader) {
 
 PacketHandler.SetHandler(0x0005, function (pSocket, pReader) {
 	// Select channel
+	
+	if (!pSocket.account) {
+		pSocket.Disconnect();
+		return;
+	}
+	
 	if (pReader.ReadUInt8() !== 2) return;
 	var worldId = pReader.ReadUInt8();
 	var channelId = pReader.ReadUInt8();
@@ -105,20 +86,22 @@ PacketHandler.SetHandler(0x0005, function (pSocket, pReader) {
 	
 	var packet = new PacketWriter(0x000B);
 	if (world === null || channelId < 0 || channelId > world.channels) {
-		console.log(world);
-		console.log(world.channels);
-		console.log(channelId);
 		packet.WriteUInt8(8);
 	}
 	else {
+		pSocket.state = {
+			worldId: worldId,
+			channelId: channelId
+		};
+	
 		packet.WriteUInt8(0);
 		
-		var characters = 1;
+		var characters = 3;
 		packet.WriteUInt8(characters);
 		
 		for (var i = 0; i < characters; i++) {
 			var character = new Character();
-			character.name = 'HERPFAIC: ' + i;
+			character.name = 'IamNumber' + i;
 			character.stats.level = 123;
 			character.RandomizeLook();
 			
@@ -128,15 +111,17 @@ PacketHandler.SetHandler(0x0005, function (pSocket, pReader) {
 			
 			packet.WriteUInt8(0); // ?
 			
-			packet.WriteUInt8(0); // No rankings
+			packet.WriteUInt8(false); // No rankings
 			// packet.WriteUInt32(character.rankWorld);
 			// packet.WriteUInt32(character.rankWorldChange);
 			// packet.WriteUInt32(character.rankJob);
 			// packet.WriteUInt32(character.rankJobChange);
+			/*
 			packet.WriteUInt32(1);
 			packet.WriteUInt32(1);
 			packet.WriteUInt32(1);
 			packet.WriteUInt32(1);
+			*/
 		}
 		
 		
@@ -144,17 +129,6 @@ PacketHandler.SetHandler(0x0005, function (pSocket, pReader) {
 		packet.WriteUInt32(6); // Max Characters
 	}
 	
-	
-	pSocket.SendPacket(packet);
-});
-
-PacketHandler.SetHandler(0x0015, function (pSocket, pReader) {
-	// Check character name
-	var name = pReader.ReadString();
-	
-	var packet = new PacketWriter(0x000D);
-	packet.WriteString(name);
-	packet.WriteUInt8(false); // Taken bool
 	
 	pSocket.SendPacket(packet);
 });
