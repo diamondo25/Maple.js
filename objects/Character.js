@@ -109,3 +109,24 @@ global.Character = function Character(pValues) {
 		pPacket.WriteUInt32(0);
 	};
 };
+
+
+global.Character.prototype = {
+	RandomizeLook: function () {
+		var charnx = DataFiles.character;
+		{
+			var dir = charnx.Child('Face');
+			var amount = dir.child_count;
+			var id = Math.floor(amount * Math.random());
+			this.eyes = parseInt(dir.ChildById(id).GetName());
+		}
+		{
+			var dir = charnx.Child('Hair');
+			var amount = dir.child_count;
+			var id = Math.floor(amount * Math.random());
+			this.hair = parseInt(dir.ChildById(id).GetName());
+		}
+	}
+
+
+};

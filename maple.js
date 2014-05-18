@@ -5,6 +5,12 @@ global.PacketReader = require('./net/PacketReader.js').PacketReader;
 global.PacketHandler = require('./net/PacketHandler.js');
 
 require('./helpers.js');
+nx = require('node-nx');
+global.DataFiles = {
+	character: new nx.file('C:\\WZS 2\\Character.nx'),
+	items: new nx.file('C:\\WZS 2\\Item.nx'),
+	map: new nx.file('C:\\WZS 2\\Map.nx'),
+};
 
 global.ConnectedClients = [];
 
@@ -32,7 +38,10 @@ var server = require('net').createServer(function (pSocket) {
 		this.write(buffer);
 	};
 	
-	
+	pSocket.Disconnect = function () {
+		this.end();
+		this.destroy();
+	};
 	
 	pSocket.on('data', function (pData) {
 		pSocket.pause();
@@ -104,8 +113,9 @@ require('fs').readdirSync('./objects').forEach(function (pFileName) {
 console.log('Loading packet handlers...');
 
 require('fs').readdirSync('./packet_handlers').forEach(function (pFileName) {
+	var curAmount = PacketHandler.GetHandlerCount();
 	require('./packet_handlers/' + pFileName);
-	console.log(' - Packet handlers in ' + pFileName + ' loaded');
+	console.log(' - Packet handlers in ' + pFileName + ' loaded (amount: ' + (PacketHandler.GetHandlerCount() - curAmount) + ')');
 });
 
 
@@ -120,7 +130,7 @@ setInterval(function () {
 			var client = clientsCopy[i];
 			if (client.ponged == false) {
 				console.log('Terminated client');
-				client.end(); // Exterminate.
+				client.Disconnect(); // Exterminate.
 				continue;
 			}
 			client.ponged = false;
@@ -137,7 +147,7 @@ process.on('SIGINT', function() {
 	var i;
 	for (i = 0; i < clientsCopy.length; i++) {
 		try {
-			clientsCopy[i].end();
+			clientsCopy[i].Disconnect();
 		}
 		catch (ex) {
 			console.log(ex);
@@ -155,3 +165,8 @@ PacketHandler.SetHandler(0x0018, function (pSocket, pReader) {
 server.listen(ServerConfig.port);
 
 console.log('Waiting for people on port ' + ServerConfig.port + '...');
+
+
+var character = new Character();
+character.RandomizeLook();
+console.log(character);

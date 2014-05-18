@@ -40,7 +40,7 @@ PacketHandler.SetHandler(0x0001, function (pSocket, pReader) {
 	
 });
 
-PacketHandler.SetHandler(0x000B, function (pSocket, pReader) {
+var showWorldsPacketHandler = function (pSocket, pReader) {
 	// Request worlds
 	var packet;
 	
@@ -81,7 +81,10 @@ PacketHandler.SetHandler(0x000B, function (pSocket, pReader) {
 	
 	pSocket.SendPacket(packet);
 	
-});
+};
+
+PacketHandler.SetHandler(0x0004, showWorldsPacketHandler);
+PacketHandler.SetHandler(0x000B, showWorldsPacketHandler);
 
 PacketHandler.SetHandler(0x0006, function (pSocket, pReader) {
 	// Request world state
@@ -116,7 +119,8 @@ PacketHandler.SetHandler(0x0005, function (pSocket, pReader) {
 		for (var i = 0; i < characters; i++) {
 			var character = new Character();
 			character.name = 'HERPFAIC: ' + i;
-			character.stats.level = 255;
+			character.stats.level = 123;
+			character.RandomizeLook();
 			
 			
 			character.AddStats(packet);
@@ -137,7 +141,7 @@ PacketHandler.SetHandler(0x0005, function (pSocket, pReader) {
 		
 		
 		packet.WriteUInt8(2); // No PIC
-		packet.WriteUInt32(12); // Max Characters
+		packet.WriteUInt32(6); // Max Characters
 	}
 	
 	

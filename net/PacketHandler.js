@@ -1,4 +1,5 @@
 var handlers = {};
+var handlerCount = 0;
 
 function DummyHandler(pSocket, pPacket) {
 	pPacket.offset = 0;
@@ -12,7 +13,12 @@ exports.GetHandler = function (pOpCode) {
 };
 
 exports.SetHandler = function (pOpCode, pCallback) {
+	if (handlers[pOpCode] === undefined) handlerCount++;
 	handlers[pOpCode] = pCallback;
 	
 	console.log('Registered handler for 0x' + pOpCode.toString(16));
+};
+
+exports.GetHandlerCount = function () {
+	return handlerCount;
 };
