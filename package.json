@@ -1,0 +1,25 @@
+{
+	"name": "Maple",
+	"version": "0.1",
+	"description": "MapleStory Server core using Node.js",
+	"private": true,
+	"homepage": "https://github.com/diamondo25/Maple.js",
+	"repository": {
+		"type": "git",
+		"url": "git://github.com/diamondo25/Maple.js"
+	},
+	"author": {
+		"name": "Erwin Oegema",
+		"email": "erwin.oegema@gmail.com",
+		"url": "https://github.com/diamondo25"
+	},
+	"dependencies": {
+		"int64-native": "0.3.2",
+		"nx": "0.1.0",
+		"mongoose": "3.8.9",
+		"mongoose-schema-extend": "1.7.0"
+	},
+	"main": "maplejs",
+	"license": "MIT",
+	"readmeFilename": "README.md"
+}

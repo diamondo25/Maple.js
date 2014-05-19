@@ -1,3 +1,79 @@
+
+/*
+var Item = require('./item.js');
+
+
+var characterSchema = new Mongoose.Schema({
+	internalId: Number,
+	account: { type: Number, ref: 'Account' },
+	worldId: Number,
+	name: String,
+	female: Boolean,
+	skin: Number,
+	eyes: Number,
+	hair: Number,
+	
+	mesos: Number,
+	
+	mapId: Number,
+	mapPos: Number,
+	
+	maxSlots: Array,
+	stats: {
+		level: Number,
+		job: Number,
+		str: Number,
+		dex: Number,
+		int: Number,
+		luk: Number,
+		hp: Number,
+		mhp: Number,
+		mp: Number,
+		mmp: Number,
+		ap: Number,
+		sp: Number,
+		exp: Number,
+		fame: Number,
+	},
+});
+
+global.Character = Mongoose.model('Character', characterSchema);
+
+global.Character.methods.AddStats = function (pPacket) {
+	pPacket.WriteUInt32(this._id);
+	pPacket.WriteString(this.name, 13);
+	pPacket.WriteUInt8(this.female);
+	pPacket.WriteUInt8(this.skin);
+	pPacket.WriteUInt32(this.eyes);
+	pPacket.WriteUInt32(this.hair);
+	
+	pPacket.WriteUInt64(0);
+	pPacket.WriteUInt64(0);
+	pPacket.WriteUInt64(0);
+	
+	pPacket.WriteUInt8(this.stats.level);
+	pPacket.WriteUInt16(this.stats.job);
+	pPacket.WriteUInt16(this.stats.str);
+	pPacket.WriteUInt16(this.stats.dex);
+	pPacket.WriteUInt16(this.stats.int);
+	pPacket.WriteUInt16(this.stats.luk);
+	pPacket.WriteUInt16(this.stats.hp);
+	pPacket.WriteUInt16(this.stats.mhp); 
+	pPacket.WriteUInt16(this.stats.mp);
+	pPacket.WriteUInt16(this.stats.mmp); 
+	pPacket.WriteUInt16(this.stats.ap); // Byte if evan?
+	pPacket.WriteUInt16(this.stats.sp);
+	pPacket.WriteUInt32(this.stats.exp);
+	pPacket.WriteUInt16(this.stats.fame);
+	pPacket.WriteUInt32(0); // Gachapon EXP
+	
+	pPacket.WriteUInt32(this.mapId);
+	pPacket.WriteUInt8(this.mapPos);
+	
+	pPacket.WriteUInt32(0); // Unk
+};
+*/
+
 global.Character = function Character(pValues) {
 	pValues = pValues || {};
 	this.id = pValues.id || new Date().getTime();
