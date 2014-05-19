@@ -1,6 +1,6 @@
 {
 	"name": "Maple",
-	"version": "0.1",
+	"version": "0.1.0",
 	"description": "MapleStory Server core using Node.js",
 	"private": true,
 	"homepage": "https://github.com/diamondo25/Maple.js",
@@ -15,9 +15,9 @@
 	},
 	"dependencies": {
 		"int64-native": "0.3.2",
-		"nx": "0.1.0",
+		"nx-parser": "0.1.0",
 		"mongoose": "3.8.9",
-		"mongoose-schema-extend": "1.7.0"
+		"mongoose-schema-extend": "0.1.7"
 	},
 	"main": "maplejs",
 	"license": "MIT",
