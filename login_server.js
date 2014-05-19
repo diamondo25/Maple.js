@@ -15,7 +15,7 @@ global.PacketReader = require('./net/PacketReader.js').PacketReader;
 global.Mongoose = require('mongoose');
 
 require('./helpers.js');
-nx = require('node-nx');
+var nx = require('nx-parser');
 
 console.log('Starting Maple.js LoginServer (V' + ServerConfig.version + '.' + ServerConfig.subversion + ', ' + ServerConfig.locale + ')...');
 

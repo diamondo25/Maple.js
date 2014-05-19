@@ -1,17 +1,14 @@
-global.Account = function Account(pValues) {
-	pValues = pValues || {};
-	
-	this.id = pValues.id || -1;
-	this.name = pValues.name || 'UnkUser';
-	this.female = pValues.female || false;
-	this.gradeCode = pValues.gradeCode || 0;
-	this.countryId = pValues.countryId || 0;
-	
-	this.creationDate = pValues.creationDate || new Date();
-	this.banReason = pValues.banReason || 0;
-	this.banResetDate = pValues.banResetDate || null;
-	
-	this.muteReason = pValues.muteReason || 0;
-	this.muteResetDate = pValues.muteResetDate || null;
-
-};
+var accountSchema = Mongoose.Schema({
+	name: String,
+	password: String,
+	salt: { type: String, default: null },
+	female: Boolean,
+	creationDate: Date,
+	banReason: Number,
+	banResetDate: Date,
+	muteReason: Number,
+	muteResetDate: Date,
+	isAdmin: Boolean,
+	loggedIn: Boolean
+});
+global.Account = Mongoose.model('Account', accountSchema)

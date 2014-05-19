@@ -1,4 +1,5 @@
-var mapleSocket = require('../net/socket.js');
+var mapleSocket = require('../net/socket.js'),
+	wait = require('wait.for');
 global.Server = exports.Server = function Server(pName, pPort, pVersion, pSubversion, pLocale) {
 	this.name = pName;
 	this.packetHandler = require('../net/PacketHandler.js');
@@ -22,8 +23,6 @@ global.Server = exports.Server = function Server(pName, pPort, pVersion, pSubver
 			this.write(buffer);
 			
 			buffer = pPacket.GetBufferCopy();
-			console.log('Sending packet');
-			console.log(buffer);
 			mapleSocket.EncryptData(buffer, this.serverSequence);
 			
 			this.serverSequence = mapleSocket.MorphSequence(this.serverSequence);
@@ -62,7 +61,8 @@ global.Server = exports.Server = function Server(pName, pPort, pVersion, pSubver
 					pSocket.clientSequence = mapleSocket.MorphSequence(pSocket.clientSequence);
 					
 					var reader = new PacketReader(block);
-					this.server.packetHandler.GetHandler(reader.ReadUInt16())(pSocket, reader);
+					var handler = this.server.packetHandler.GetHandler(reader.ReadUInt16());
+					wait.launchFiber(handler, pSocket, reader);
 				}
 				
 				pSocket.header = !pSocket.header;

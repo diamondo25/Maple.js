@@ -17,7 +17,7 @@ global.PacketReader = require('./net/PacketReader.js').PacketReader;
 global.Mongoose = require('mongoose');
 
 require('./helpers.js');
-nx = require('node-nx');
+var nx = require('nx-parser');
 
 console.log('Starting Maple.js ChannelServer (V' + ServerConfig.version + '.' + ServerConfig.subversion + ', ' + ServerConfig.locale + ')...');
 console.log('World ID: ' + config.worldId + ', Channel ID: ' + config.channelId);

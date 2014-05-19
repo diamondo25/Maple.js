@@ -82,3 +82,7 @@ global.ForAllFiles = function (pFolder, pFilter, pCallback) {
 			pCallback(pFolder + '/' + pFileName);
 	});
 };
+
+global.GetIdOfDocument = function (pDocument) {
+    return parseInt('0x' + String(pDocument._id).substr(0, 8));
+};

@@ -2,6 +2,7 @@
 	"version": 83,
 	"subversion": "1",
 	"locale": 8,
+	"enableAutoregister": true,
 	"databaseConnectionString": "mongodb://localhost/maplejs",
 	"loginservers": [
 		{
