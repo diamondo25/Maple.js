@@ -20,7 +20,6 @@ PacketHandler.SetHandler(0x0015, function (pSocket, pReader) {
 
 PacketHandler.SetHandler(0x0017, function (pSocket, pReader) {
 	// Check character name
-	
 	if (!pSocket.account || !pSocket.state) {
 		pSocket.Disconnect();
 		return;
@@ -30,7 +29,7 @@ PacketHandler.SetHandler(0x0017, function (pSocket, pReader) {
 	
 	var id = pReader.ReadUInt32();
 	var character = FindDocumentByCutoffId(Character, id, {
-		account: pSocket.account,
+		account: pSocket.account._id,
 		worldId: pSocket.state.worldId
 	});
 	
@@ -38,19 +37,30 @@ PacketHandler.SetHandler(0x0017, function (pSocket, pReader) {
 		pSocket.Disconnect();
 		return;
 	}
+	
 	wait.forMethod(character, 'remove');
 	
-	console.log(character);
-	
-	// wait.forMethod(character, 'remove');
-	
 	var packet = new PacketWriter(0x000F);
-	packet.WriteString(id);
+	packet.WriteUInt32(id);
 	packet.WriteUInt8(0);
 	
 	pSocket.SendPacket(packet);
 });
 
+function EnterChannel(pSocket, pCharacterId) {
+	var world = GetWorldInfoById(pSocket.state.worldId);
+	
+	// Remote-hack vulnerable
+	var packet = new PacketWriter(0x000C);
+	packet.WriteUInt16(0);
+	packet.WriteBytes(IPStringToBytes(world.publicIP));
+	packet.WriteUInt16(world.portStart + pSocket.state.channelId);
+	packet.WriteUInt32(pCharacterId);
+	packet.WriteUInt8(2);
+	packet.WriteUInt32(12312);
+	
+	pSocket.SendPacket(packet);
+}
 
 PacketHandler.SetHandler(0x0013, function (pSocket, pReader) {
 	// Select character
@@ -63,18 +73,23 @@ PacketHandler.SetHandler(0x0013, function (pSocket, pReader) {
 	var characterId = pReader.ReadUInt32();
 	var macAddr = pReader.ReadString();
 	var macAddrNoDashes = pReader.ReadString();
+	EnterChannel(pSocket, characterId);
+});
+
+
+PacketHandler.SetHandler(0x001E, function (pSocket, pReader) {
+	// Select character
 	
-	var world = GetWorldInfoById(pSocket.state.worldId);
+	if (!pSocket.account || !pSocket.state) {
+		pSocket.Disconnect();
+		return;
+	}
+	var pic = pReader.ReadString();
 	
-	var packet = new PacketWriter(0x000C);
-	packet.WriteUInt16(0);
-	packet.WriteBytes(IPStringToBytes(world.publicIP));
-	packet.WriteUInt16(world.portStart + pSocket.state.channelId);
-	packet.WriteUInt32(characterId);
-	packet.WriteUInt8(2);
-	packet.WriteUInt32(0);
-	
-	pSocket.SendPacket(packet);
+	var characterId = pReader.ReadUInt32();
+	var macAddr = pReader.ReadString();
+	var macAddrNoDashes = pReader.ReadString();
+	EnterChannel(pSocket, characterId);
 });
 
 
@@ -161,7 +176,6 @@ PacketHandler.SetHandler(0x0016, function (pSocket, pReader) {
 		item.slot = pSlot;
 		item.itemid = pItemId;
 		wait.forMethod(item, 'save');
-		console.log(item);
 	}
 	
 	if (top != 0) CreateItem(top, -5, 1);

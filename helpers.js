@@ -91,12 +91,17 @@ global.GetIdOfDocument = function (pDocument) {
 global.FindDocumentByCutoffId = function (pSchema, pDocumentId, pFilterAdditions) {
 	var filter = pFilterAdditions || {};
 	pDocumentId = pDocumentId.toString(16);
-
-	// Get all rows
-	var rows = wait.forMethod(pSchema, 'find', '_id', filter);
-
+	
+	var query = pSchema.find();
+	for (var index in filter) {
+		query = query.where(index).equals(filter[index]);
+	}
+	query = query.select('_id');
+	
+	var rows = wait.forMethod(query, 'exec');
+	
 	for (var i = 0; i < rows.length; i++) {
-		if (String(rows[i]._id).indexOf(pDocumentId) == 0) {
+		if (rows[i]._id.toString().indexOf(pDocumentId) == 0) {
 			return wait.forMethod(pSchema, 'findById', rows[i]._id);
 		}
 	}

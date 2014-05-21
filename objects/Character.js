@@ -2,7 +2,7 @@ require('./Item.js');
 var wait = require('wait.for');
 
 var characterSchema = Mongoose.Schema({
-	account: { type: Mongoose.Schema.ObjectId, ref: 'Account' },
+	account: Mongoose.Schema.ObjectId,
 	worldId: Number,
 	name: String,
 	female: Boolean,
@@ -99,10 +99,9 @@ characterSchema.methods.AddAvatar = function AddAvatar(pPacket) {
 	var cashWeapon = 0;
 	
 	var inventory = this.GetInventory(1);
-	console.log(inventory);
 	for (var index in inventory) {
 		var item = inventory[index];
-		if (item.slot > 100 || item.slot < -100) continue;
+		if (item.slot >= 0 || item.slot < -200) continue;
 		if (item.slot == -111) cashWeapon = item.itemid;
 		
 		var slot = Math.abs(item.slot % 100);
@@ -113,7 +112,6 @@ characterSchema.methods.AddAvatar = function AddAvatar(pPacket) {
 			slots[0][slot] = item.itemid;
 		}
 	}
-	console.log(slots);
 	// Write info
 	
 	pPacket.WriteUInt8(this.female);
