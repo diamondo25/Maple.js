@@ -1,0 +1,1 @@
+Put the DLLs, BAT and EXE inside the directory with WZ files, and run batchconvert.bat.

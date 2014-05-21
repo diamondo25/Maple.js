@@ -1,14 +1,13 @@
 require('mongoose-schema-extend');
 
 var itemSchema = Mongoose.Schema({
-	character: { type: Number, ref: 'Character' },
+	character: { type: Mongoose.Schema.ObjectId, ref: 'Character' },
 	itemid: Number,
 	inventory: Number,
 	slot: Number,
 	cashId: Number,
 	expires: Date
-}, { discriminatorKey : '_type' });
-global.Item = Mongoose.model('Item', itemSchema);
+}, { collection : 'items', discriminatorKey : '_type' });
 
 var petSchema = itemSchema.extend({
 	name: String,
@@ -16,7 +15,6 @@ var petSchema = itemSchema.extend({
 	fullness: Number,
 	level: Number
 });
-global.Pet = Mongoose.model('Pet', petSchema);
 
 
 var equipSchema = itemSchema.extend({
@@ -45,7 +43,6 @@ var equipSchema = itemSchema.extend({
 	itemExp: Number,
 	hammers: Number
 });
-global.Equip = Mongoose.model('Equip', equipSchema);
 
 
 var rechargeableSchema = itemSchema.extend({
@@ -53,4 +50,9 @@ var rechargeableSchema = itemSchema.extend({
 	flags: Number,
 	uniqueId: Number,
 });
+
+
+global.Equip = Mongoose.model('Equip', equipSchema);
+global.Item = Mongoose.model('Item', itemSchema);
+global.Pet = Mongoose.model('Pet', petSchema);
 global.Rechargeable = Mongoose.model('Rechargeable', rechargeableSchema);

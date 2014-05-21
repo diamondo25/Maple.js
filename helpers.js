@@ -1,4 +1,5 @@
 global.Int64 = require('int64-native');
+var wait = require('wait.for');
 
 global.GetFiletimeFromDate = function (pDate) {
 	if (!(pDate instanceof Date)) return null;
@@ -85,4 +86,24 @@ global.ForAllFiles = function (pFolder, pFilter, pCallback) {
 
 global.GetIdOfDocument = function (pDocument) {
     return parseInt('0x' + String(pDocument._id).substr(0, 8));
+};
+
+global.FindDocumentByCutoffId = function (pSchema, pDocumentId, pFilterAdditions) {
+	var filter = pFilterAdditions || {};
+	pDocumentId = pDocumentId.toString(16);
+
+	// Get all rows
+	var rows = wait.forMethod(pSchema, 'find', '_id', filter);
+
+	for (var i = 0; i < rows.length; i++) {
+		if (String(rows[i]._id).indexOf(pDocumentId) == 0) {
+			return wait.forMethod(pSchema, 'findById', rows[i]._id);
+		}
+	}
+	
+	return null;
+};
+
+global.GetInventoryOfItemId = function (pItemId) {
+    return (pItemId / 10000000) >>> 0;
 };

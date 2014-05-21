@@ -92,7 +92,7 @@ PacketHandler.SetHandler(0x0001, function (pSocket, pReader) {
 			
 			// PIC info
 			packet.WriteUInt8(true);
-			packet.WriteUInt8(2);
+			packet.WriteUInt8(1);
 		}
 		
 	}

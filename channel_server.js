@@ -15,6 +15,7 @@ global.ServerConfig = require('./config.json');
 global.PacketWriter = require('./net/PacketWriter.js').PacketWriter;
 global.PacketReader = require('./net/PacketReader.js').PacketReader;
 global.Mongoose = require('mongoose');
+global.wait = require('wait.for');
 
 require('./helpers.js');
 var nx = require('nx-parser');
@@ -89,4 +90,3 @@ process.on('SIGINT', function() {
 	console.log('TERMINATE');
 	process.exit();
 });
-

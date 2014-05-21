@@ -96,15 +96,11 @@ PacketHandler.SetHandler(0x0005, function (pSocket, pReader) {
 	
 		packet.WriteUInt8(0);
 		
-		var characters = 3;
-		packet.WriteUInt8(characters);
+		var characters = pSocket.account.GetCharacters(pSocket.state.worldId);
+		packet.WriteUInt8(characters.length);
 		
-		for (var i = 0; i < characters; i++) {
-			var character = new Character();
-			character.name = 'IamNumber' + i;
-			character.stats.level = 123;
-			character.RandomizeLook();
-			
+		for (var i = 0; i < characters.length; i++) {
+			var character = characters[i];
 			
 			character.AddStats(packet);
 			character.AddAvatar(packet);
@@ -125,7 +121,7 @@ PacketHandler.SetHandler(0x0005, function (pSocket, pReader) {
 		}
 		
 		
-		packet.WriteUInt8(2); // No PIC
+		packet.WriteUInt8(1); // PIC registered
 		packet.WriteUInt32(6); // Max Characters
 	}
 	

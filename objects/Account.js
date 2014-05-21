@@ -1,3 +1,5 @@
+var wait = require('wait.for');
+
 var accountSchema = Mongoose.Schema({
 	name: String,
 	password: String,
@@ -11,4 +13,9 @@ var accountSchema = Mongoose.Schema({
 	isAdmin: Boolean,
 	loggedIn: Boolean
 });
+
+accountSchema.methods.GetCharacters = function (pWorldId) {
+	return wait.forMethod(Character, 'find', { account: this, worldId: pWorldId });
+};
+
 global.Account = Mongoose.model('Account', accountSchema)
