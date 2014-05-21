@@ -54,6 +54,8 @@ exports.PacketWriter = function PacketWriter(pOpCode) {
 	};
 	
 	this.WriteString = function (pValue, length) {
+		if (pValue === null || typeof pValue === 'undefined')
+			pValue = '';
 		if (arguments.length == 1) {
 			this.WriteUInt16(pValue.length);
 		
@@ -75,6 +77,15 @@ exports.PacketWriter = function PacketWriter(pOpCode) {
 	this.WriteBytes = function (pValue) {
 		for (var i = 0; i < pValue.length; i++) {
 			this.WriteUInt8(pValue[i]);
+		}
+		return this;
+	};
+	
+	this.WriteHexString = function (pValue) {
+		if ((pValue.length % 2) != 0) throw 'HexString is not a valid length';
+		
+		for (var i = 0; i < pValue.length; i += 2) {
+			this.WriteUInt8(parseInt('0x' + pValue.substr(i, 2)));
 		}
 		return this;
 	};

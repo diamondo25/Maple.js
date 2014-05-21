@@ -5,8 +5,6 @@ PacketHandler.SetHandler(0x0001, function (pSocket, pReader) {
 	var username = pReader.ReadString();
 	var password = pReader.ReadString();
 	
-	//Account.findOne({ name: username }, function (pErr, account) {
-	
 	var packet = new global.PacketWriter(0x0000);
 	try {
 		var account = wait.forMethod(Account, 'findOne', { name: username });
@@ -101,6 +99,6 @@ PacketHandler.SetHandler(0x0001, function (pSocket, pReader) {
 		packet.WriteUInt16(10); // too many requests
 		packet.WriteUInt32(0);
 	}
+	
 	pSocket.SendPacket(packet);
-	//});
 });

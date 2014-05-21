@@ -62,7 +62,12 @@ global.Server = exports.Server = function Server(pName, pPort, pVersion, pSubver
 					
 					var reader = new PacketReader(block);
 					var handler = this.server.packetHandler.GetHandler(reader.ReadUInt16());
-					wait.launchFiber(handler, pSocket, reader);
+					try {
+						wait.launchFiber(handler, pSocket, reader);
+					}
+					catch (exception) {
+						console.error(exception);
+					}
 				}
 				
 				pSocket.header = !pSocket.header;

@@ -1,12 +1,16 @@
 PacketHandler.SetHandler(0x0014, function (pSocket, pReader) {
 	var characterId = pReader.ReadUInt32();
 	
-	var character = new Character({
-		id: characterId,
-		name: 'YourNewChar'
-	});
+	var character = FindDocumentByCutoffId(Character, characterId, {
+		worldId: pSocket.server.worldId
+	})
 	
-	character.RandomizeLook();
+	console.log(character);
+	if (!character) {
+		console.log('No character found!');
+		pSocket.Disconnect();
+		return;
+	}
 	
 	var packet = new PacketWriter(0x007D);
 	packet.WriteUInt32(pSocket.server.channelId);
@@ -29,20 +33,58 @@ PacketHandler.SetHandler(0x0014, function (pSocket, pReader) {
 	
 	{
 		// Inventory
-		packet.WriteUInt32(character.mesos);
+		packet.WriteUInt32(character.inventory.mesos);
 		for (var i = 0; i < 5; i++)
-			packet.WriteUInt8(character.maxSlots[i]);
+			packet.WriteUInt8(character.inventory.maxSlots[i]);
 	
 		packet.WriteUInt64(new Int64('0x14F373BFDE04000'));
 		
-		packet.WriteUInt16(0);
-		packet.WriteUInt16(0);
-		packet.WriteUInt16(0);
+		var equips = character.GetInventory(1);
+		
+		// Regular
+		for (var j = 0; j < equips.length; j++) {
+			var item = equips[j];
+			if (!(item.slot > -100 && item.slot <= 0)) continue;
+			packet.WriteUInt16(Math.abs(item.slot));
+			WriteItemPacketData(item, packet);
+		}
 		packet.WriteUInt16(0);
 		
-		for (var i = 1; i < 5; i++) {
+		// Cash
+		for (var j = 0; j < equips.length; j++) {
+			var item = equips[j];
+			if (!(item.slot > -200 && item.slot <= -100)) continue;
+			packet.WriteUInt16(Math.abs(item.slot));
+			WriteItemPacketData(item, packet);
+		}
+		packet.WriteUInt16(0);
+		
+		// Equip Inventory
+		for (var j = 0; j < equips.length; j++) {
+			var item = equips[j];
+			if (!(item.slot > 0)) continue;
+			packet.WriteUInt16(Math.abs(item.slot));
+			WriteItemPacketData(item, packet);
+		}
+		packet.WriteUInt16(0);
+		
+		// Evan
+		for (var j = 0; j < equips.length; j++) {
+			var item = equips[j];
+			if (!(item.slot >= 1000 && item.slot < 1004)) continue;
+			packet.WriteUInt16(Math.abs(item.slot));
+			WriteItemPacketData(item, packet);
+		}
+		packet.WriteUInt16(0);
+		
+		for (var i = 2; i <= 5; i++) {
 			// For each inventory...
-			
+			var inventory = character.GetInventory(i);
+			for (var j = 0; j < inventory.length; j++) {
+				var item = inventory[j];
+				packet.WriteUInt8(item.slot);
+				WriteItemPacketData(item, packet);
+			}
 			packet.WriteUInt8(0);
 		}
 	}

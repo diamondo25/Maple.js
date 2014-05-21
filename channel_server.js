@@ -90,3 +90,5 @@ process.on('SIGINT', function() {
 	console.log('TERMINATE');
 	process.exit();
 });
+
+Item.find({ itemId: 0 }).remove();

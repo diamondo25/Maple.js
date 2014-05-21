@@ -39,7 +39,6 @@ var characterSchema = Mongoose.Schema({
 
 
 characterSchema.methods.GetInventory = function (pInventoryIndex) {
-	console.log(wait.forMethod(Item, 'find'));
 	return wait.forMethod(Item, 'find', { character: this, inventory: pInventoryIndex });
 };
 
@@ -102,14 +101,14 @@ characterSchema.methods.AddAvatar = function AddAvatar(pPacket) {
 	for (var index in inventory) {
 		var item = inventory[index];
 		if (item.slot >= 0 || item.slot < -200) continue;
-		if (item.slot == -111) cashWeapon = item.itemid;
+		if (item.slot == -111) cashWeapon = item.itemId;
 		
 		var slot = Math.abs(item.slot % 100);
 		if (slots[0][slot]) {
-			slots[1][slot] = item.itemid;
+			slots[1][slot] = item.itemId;
 		}
 		else {
-			slots[0][slot] = item.itemid;
+			slots[0][slot] = item.itemId;
 		}
 	}
 	// Write info

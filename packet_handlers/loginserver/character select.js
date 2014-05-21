@@ -10,9 +10,14 @@ PacketHandler.SetHandler(0x0015, function (pSocket, pReader) {
 	
 	var name = pReader.ReadString();
 	
+	var found = true;
+	if (name.length >= 4 && name.length <= 12) {
+		found = wait.forMethod(Character, 'count', { name: name }) == 0;
+	}
+	
 	var packet = new PacketWriter(0x000D);
 	packet.WriteString(name);
-	packet.WriteUInt8(false); // Taken bool
+	packet.WriteUInt8(found); // Taken bool
 	
 	pSocket.SendPacket(packet);
 });
@@ -56,8 +61,8 @@ function EnterChannel(pSocket, pCharacterId) {
 	packet.WriteBytes(IPStringToBytes(world.publicIP));
 	packet.WriteUInt16(world.portStart + pSocket.state.channelId);
 	packet.WriteUInt32(pCharacterId);
-	packet.WriteUInt8(2);
-	packet.WriteUInt32(12312);
+	packet.WriteUInt8(0); // Flag bit 1 set = korean popup?
+	packet.WriteUInt32(0); // Minutes left on Internet Cafe?
 	
 	pSocket.SendPacket(packet);
 }
@@ -174,7 +179,7 @@ PacketHandler.SetHandler(0x0016, function (pSocket, pReader) {
 		item.character = character;
 		item.inventory = pInventory;
 		item.slot = pSlot;
-		item.itemid = pItemId;
+		item.itemId = pItemId;
 		wait.forMethod(item, 'save');
 	}
 	
