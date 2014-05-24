@@ -74,13 +74,13 @@ PacketHandler.SetHandler(0x0001, function (pSocket, pReader) {
 			packet.WriteUInt16(0);
 			packet.WriteUInt32(0);
 			
-			packet.WriteUInt32(GetIdOfDocument(account));
+			packet.WriteUInt32(GetDocumentId(account));
 			packet.WriteUInt8(0);
-			packet.WriteUInt8(account.isAdmin); // Admin flag
-			packet.WriteUInt8(1);
-			packet.WriteUInt8(1);
+			packet.WriteUInt8(account.isAdmin ? 0x40 : 0); // Admin flag
+			packet.WriteUInt8(0);
+			packet.WriteUInt8(0);
 			packet.WriteString(account.name);
-			packet.WriteUInt8(1);
+			packet.WriteUInt8(0);
 			packet.WriteUInt8(account.muteReason);
 			packet.WriteDate(account.muteResetDate);
 			
@@ -96,6 +96,7 @@ PacketHandler.SetHandler(0x0001, function (pSocket, pReader) {
 	}
 	catch (exception) {
 		console.log(username + ' login = error');
+		console.log(exception);
 		packet.WriteUInt16(10); // too many requests
 		packet.WriteUInt32(0);
 	}

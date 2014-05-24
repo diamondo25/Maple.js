@@ -36,16 +36,22 @@ global.DataFiles = {
 	mob: new nx.file('./datafiles/Mob.nx'),
 	skill: new nx.file('./datafiles/Skill.nx'),
 	reactor: new nx.file('./datafiles/Reactor.nx'),
+	etc: new nx.file('./datafiles/Etc.nx'),
 };
 
-require('fs').readdirSync('./objects').forEach(function (pFileName) {
-	require('./objects/' + pFileName);
+ForAllFiles('./objects', '*.js', function (pPath, pFileName) {
+	require(pPath);
+	console.log(' - Objects in ' + pFileName + ' loaded');
+});
+
+ForAllFiles('./objects/channel_server', '*.js', function (pPath, pFileName) {
+	require(pPath);
 	console.log(' - Objects in ' + pFileName + ' loaded');
 });
 
 console.log('Loading Scripts...');
-ForAllFiles('./datafiles/scripts', '*.js', function (pFileName) {
-	require(pFileName);
+ForAllFiles('./datafiles/scripts', '*.js', function (pPath, pFileName) {
+	require(pPath);
 });
 
 var server = new Server(config.instanceName, config.port, ServerConfig.version, ServerConfig.subversion, ServerConfig.locale);
@@ -90,5 +96,3 @@ process.on('SIGINT', function() {
 	console.log('TERMINATE');
 	process.exit();
 });
-
-Item.find({ itemId: 0 }).remove();

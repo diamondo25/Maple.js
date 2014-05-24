@@ -1,5 +1,6 @@
 var mapleSocket = require('../net/socket.js'),
 	wait = require('wait.for');
+
 global.Server = exports.Server = function Server(pName, pPort, pVersion, pSubversion, pLocale) {
 	this.name = pName;
 	this.packetHandler = require('../net/PacketHandler.js');
@@ -79,8 +80,9 @@ global.Server = exports.Server = function Server(pName, pPort, pVersion, pSubver
 			console.log('Connection closed.');
 			pSocket.server.connectedClients.pop(this);
 		});
-		pSocket.on('error', function () {
+		pSocket.on('error', function (pError) {
 			console.log('Error?');
+			console.log(pError);
 		});
 
 		

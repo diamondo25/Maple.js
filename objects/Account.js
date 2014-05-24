@@ -18,4 +18,4 @@ accountSchema.methods.GetCharacters = function (pWorldId) {
 	return wait.forMethod(Character, 'find', { account: this, worldId: pWorldId });
 };
 
-global.Account = Mongoose.model('Account', accountSchema)
+global.Account = Mongoose.model('Account', accountSchema);

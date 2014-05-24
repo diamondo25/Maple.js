@@ -1,5 +1,46 @@
 var wait = require('wait.for');
 
+function CheckNameValidity(pName, pAdmin) {
+	if (!pAdmin) {
+		// Check if is a forbidden name
+		var forbidden = false;
+		DataFiles.etc.Child('ForbiddenName.img').ForEach(function (pNode) {
+			if (pName.indexOf(pNode.GetData()) !== -1) {
+				forbidden = true;
+				return false;
+			}
+		});
+		if (forbidden) return false;
+	}
+	
+	return wait.forMethod(Character, 'count', { name: pName }) == 0;
+}
+
+function CheckItemValidity(pJob, pFemale, pElement, pObjectId) {
+	var infoName = '';
+	switch (pJob) {
+		case 0: infoName = 'Info/Char'; break; // Adventurer
+		case 1000: infoName = 'PremiumChar'; break; // Cygnus
+		case 2000: infoName = 'OrientChar'; break; // Aran
+	}
+	
+	infoName += pFemale ? 'Female' : 'Male';
+	
+	infoName += '/' + pElement;
+
+	var valid = false;
+	
+	DataFiles.etc.GetPath('MakeCharInfo.img/' + infoName).ForEach(function (pNode) {
+		var objectId = pNode.GetData();
+		if (pObjectId == objectId) {
+			valid = true;
+			return false;
+		}
+	});
+	
+	return valid;
+}
+
 PacketHandler.SetHandler(0x0015, function (pSocket, pReader) {
 	// Check character name
 	
@@ -10,14 +51,15 @@ PacketHandler.SetHandler(0x0015, function (pSocket, pReader) {
 	
 	var name = pReader.ReadString();
 	
-	var found = true;
+	var taken = true;
 	if (name.length >= 4 && name.length <= 12) {
-		found = wait.forMethod(Character, 'count', { name: name }) == 0;
+		//found = wait.forMethod(Character, 'count', { name: name }) != 0;
+		taken = !CheckNameValidity(name, pSocket.account.isAdmin);
 	}
 	
 	var packet = new PacketWriter(0x000D);
 	packet.WriteString(name);
-	packet.WriteUInt8(found); // Taken bool
+	packet.WriteUInt8(taken); // Taken bool
 	
 	pSocket.SendPacket(packet);
 });
@@ -132,6 +174,16 @@ PacketHandler.SetHandler(0x0016, function (pSocket, pReader) {
 	var weapon = pReader.ReadUInt32();
 	var female = pReader.ReadUInt8() == 1;
 	
+	// Check items
+	if (!CheckItemValidity(startJob, female, 0, eyes)) throw '[Character Creation] Invalid eyes';
+	if (!CheckItemValidity(startJob, female, 1, hair)) throw '[Character Creation] Invalid hair';
+	if (!CheckItemValidity(startJob, female, 2, hairColor)) throw '[Character Creation] Invalid hairColor';
+	if (!CheckItemValidity(startJob, female, 3, skin)) throw '[Character Creation] Invalid skin';
+	if (!CheckItemValidity(startJob, female, 4, top)) throw '[Character Creation] Invalid top';
+	if (!CheckItemValidity(startJob, female, 5, bottom)) throw '[Character Creation] Invalid bottom';
+	if (!CheckItemValidity(startJob, female, 6, shoes)) throw '[Character Creation] Invalid shoes';
+	if (!CheckItemValidity(startJob, female, 7, weapon)) throw '[Character Creation] Invalid weapon';
+	
 	
 	var character = new Character({
 		account: pSocket.account,
@@ -158,7 +210,7 @@ PacketHandler.SetHandler(0x0016, function (pSocket, pReader) {
 		},
 		
 		inventory: {
-			mesos: 100000000,
+			mesos: 0,
 			maxSlots: [96, 96, 96, 96, 96]
 		}
 	});

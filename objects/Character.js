@@ -56,7 +56,7 @@ characterSchema.methods.SetItem = function (pItem) {
 // Packet helpers
 
 characterSchema.methods.AddStats = function AddStats(pPacket) {
-	pPacket.WriteUInt32(GetIdOfDocument(this));
+	pPacket.WriteUInt32(GetDocumentId(this));
 	pPacket.WriteString(this.name, 13);
 	pPacket.WriteUInt8(this.female);
 	pPacket.WriteUInt8(this.skin);

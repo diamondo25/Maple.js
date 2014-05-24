@@ -1,3 +1,5 @@
+var wait = require('wait.for');
+
 PacketHandler.SetHandler(0x0014, function (pSocket, pReader) {
 	var characterId = pReader.ReadUInt32();
 	
@@ -11,6 +13,19 @@ PacketHandler.SetHandler(0x0014, function (pSocket, pReader) {
 		pSocket.Disconnect();
 		return;
 	}
+	
+	pSocket.character = character;
+	pSocket.account = wait.forMethod(Account, 'findOne', { _id: character.accountId });
+	
+	character.mapId = 709000605;
+	
+	// Kick back user if needed
+	var map = GetMap(character.mapId);
+	if (map.forcedReturn != 999999999) {
+		character.mapId = map.forcedReturn;
+		map = GetMap(character.mapId);
+	}
+	
 	
 	var packet = new PacketWriter(0x007D);
 	packet.WriteUInt32(pSocket.server.channelId);
@@ -91,7 +106,22 @@ PacketHandler.SetHandler(0x0014, function (pSocket, pReader) {
 	
 	{
 		// Skills
-		packet.WriteUInt16(0); // Unlocked
+		var skills = FindRows(Skill, 'characterId', character);
+		packet.WriteUInt16(skills.length); // Unlocked
+		for (var i = 0; i < skills.length; i++) {
+			var skill = skills[i];
+			packet.WriteUInt32(skill.skillId);
+			packet.WriteUInt32(skill.points);
+			
+			if (skill.expires === null)
+				packet.WriteUInt64(Constants.Item.NoExpiration);
+			else
+				packet.WriteDate(skill.expires);
+
+			if ((Math.floor(skill.skillId / 10000) % 10) == 2)
+				packet.WriteUInt32(skill.maxLevel);
+		}
+
 		packet.WriteUInt16(0); // Cooldowns
 	}
 	
@@ -129,4 +159,7 @@ PacketHandler.SetHandler(0x0014, function (pSocket, pReader) {
 	packet.WriteDate(new Date()); // Current time
 	
 	pSocket.SendPacket(packet);
+	
+	
+	map.AddClient(pSocket);
 });

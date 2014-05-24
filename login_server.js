@@ -28,10 +28,11 @@ global.DataFiles = {
 	character: new nx.file('./datafiles/Character.nx'),
 	item: new nx.file('./datafiles/Item.nx'),
 	string: new nx.file('./datafiles/String.nx'),
+	etc: new nx.file('./datafiles/Etc.nx'),
 };
 
-require('fs').readdirSync('./objects').forEach(function (pFileName) {
-	require('./objects/' + pFileName);
+ForAllFiles('./objects', '*.js', function (pPath, pFileName) {
+	require(pPath);
 	console.log(' - Objects in ' + pFileName + ' loaded');
 });
 
@@ -74,3 +75,4 @@ process.on('SIGINT', function() {
 	console.log('TERMINATE');
 	process.exit();
 });
+

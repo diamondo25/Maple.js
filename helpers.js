@@ -26,6 +26,32 @@ global.IPStringToBytes = function (pIP) {
 	return [parseInt(ipParts[0]), parseInt(ipParts[1]), parseInt(ipParts[2]), parseInt(ipParts[3])];
 };
 
+global.GetOrDefault = function (pValue, pDefault) {
+	if (pValue === null || typeof pValue === 'undefined') return pDefault;
+	return pValue;
+};
+
+global.GetOrDefault_NXData = function (pNode, pDefault) {
+	if (pNode === null || typeof pNode === 'undefined') return pDefault;
+	return pNode.GetData();
+};
+
+global.AddLeftPadding = function (pValue, pLength, pPaddingCharacter) {
+	pPaddingCharacter = pPaddingCharacter || '0';
+	pValue = pValue.toString();
+	for (var i = pValue.length; i < pLength; i++)
+		pValue = pPaddingCharacter + pValue;
+	return pValue;
+};
+
+global.AddRightPadding = function (pValue, pLength, pPaddingCharacter) {
+	pPaddingCharacter = pPaddingCharacter || '0';
+	pValue = pValue.toString();
+	for (var i = pValue.length; i < pLength; i++)
+		pValue += pPaddingCharacter;
+	return pValue;
+};
+
 global.CheckFileFilter = function (pFileName, pFilters) {
 	for (var filter in pFilters) {
 		var curFilter = pFilters[filter];
@@ -80,19 +106,25 @@ global.ForAllFiles = function (pFolder, pFilter, pCallback) {
 	require('fs').readdirSync(pFolder).forEach(function (pFileName) {
 		// Check if filename is okay
 		if (CheckFileFilter(pFileName, pFilter))
-			pCallback(pFolder + '/' + pFileName);
+			pCallback(pFolder + '/' + pFileName, pFileName);
 	});
 };
 
-global.GetIdOfDocument = function (pDocument) {
+global.FindRows = function (pModel, pColumnName, pExpectedValue) {
+	var searchObject = {};
+	searchObject[pColumnName] = pExpectedValue;
+	return wait.forMethod(pModel, 'find', searchObject);
+};
+
+global.GetDocumentId = function (pDocument) {
     return parseInt('0x' + String(pDocument._id).substr(0, 8));
 };
 
-global.FindDocumentByCutoffId = function (pSchema, pDocumentId, pFilterAdditions) {
+global.FindDocumentByCutoffId = function (pModel, pDocumentId, pFilterAdditions) {
 	var filter = pFilterAdditions || {};
 	pDocumentId = pDocumentId.toString(16);
 	
-	var query = pSchema.find();
+	var query = pModel.find();
 	for (var index in filter) {
 		query = query.where(index).equals(filter[index]);
 	}
@@ -102,7 +134,7 @@ global.FindDocumentByCutoffId = function (pSchema, pDocumentId, pFilterAdditions
 	
 	for (var i = 0; i < rows.length; i++) {
 		if (rows[i]._id.toString().indexOf(pDocumentId) == 0) {
-			return wait.forMethod(pSchema, 'findById', rows[i]._id);
+			return wait.forMethod(pModel, 'findById', rows[i]._id);
 		}
 	}
 	
