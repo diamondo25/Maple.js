@@ -1,5 +1,3 @@
-var wait = require('wait.for');
-
 var accountSchema = Mongoose.Schema({
 	name: String,
 	password: String,

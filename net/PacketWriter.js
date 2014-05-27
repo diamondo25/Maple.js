@@ -15,6 +15,27 @@ exports.PacketWriter = function PacketWriter(pOpCode) {
 	}
 	
 	
+	this.WriteInt8 = function (pValue) {
+		ExpandIfNeeded.call(this, 1);
+		this.buffer.writeInt8(pValue, this.writtenData, true);
+		this.writtenData += 1;
+		return this;
+	};
+	
+	this.WriteInt16 = function (pValue) {
+		ExpandIfNeeded.call(this, 2);
+		this.buffer.writeInt16LE(pValue, this.writtenData, true);
+		this.writtenData += 2;
+		return this;
+	};
+	
+	this.WriteInt32 = function (pValue) {
+		ExpandIfNeeded.call(this, 4);
+		this.buffer.writeInt32LE(pValue, this.writtenData, true);
+		this.writtenData += 4;
+		return this;
+	};
+	
 	this.WriteUInt8 = function (pValue) {
 		ExpandIfNeeded.call(this, 1);
 		this.buffer.writeUInt8(pValue, this.writtenData, true);
@@ -33,6 +54,20 @@ exports.PacketWriter = function PacketWriter(pOpCode) {
 		ExpandIfNeeded.call(this, 4);
 		this.buffer.writeUInt32LE(pValue, this.writtenData, true);
 		this.writtenData += 4;
+		return this;
+	};
+	
+	this.WriteFloat32 = function (pValue) {
+		ExpandIfNeeded.call(this, 4);
+		this.buffer.writeFloatLE(pValue, this.writtenData, true);
+		this.writtenData += 4;
+		return this;
+	};
+	
+	this.WriteFloat64 = function (pValue) {
+		ExpandIfNeeded.call(this, 8);
+		this.buffer.writeDoubleLE(pValue, this.writtenData, true);
+		this.writtenData += 8;
 		return this;
 	};
 	
@@ -82,7 +117,8 @@ exports.PacketWriter = function PacketWriter(pOpCode) {
 	};
 	
 	this.WriteHexString = function (pValue) {
-		if ((pValue.length % 2) != 0) throw 'HexString is not a valid length';
+		pValue = pValue.replace(/[^0-9A-Fa-f]/g, '');
+		if ((pValue.length % 2) != 0) throw 'HexString is not a valid length. Text: ' + pValue;
 		
 		for (var i = 0; i < pValue.length; i += 2) {
 			this.WriteUInt8(parseInt('0x' + pValue.substr(i, 2)));

@@ -8,7 +8,7 @@ function GetMapNodePath(pMapId) {
 	return DataFiles.map.GetPath('Map/Map' + category + '/' + mapName);
 }
 
-global.GetMap = function (pMapId) {
+global.GetMap = function GetMap(pMapId) {
 	pMapId = parseInt(pMapId);
 	if (maps.hasOwnProperty(pMapId)) return maps[pMapId];
 	
@@ -41,10 +41,12 @@ function Map(pNXNode) {
 	}
 	
 	
-	var portals = [];
+	var portals = {};
 	if (realNode.Child('portal')) {
 		realNode.Child('portal').ForEach(function (pPortalNode) {
-			portals.push({
+			var id = parseInt(pPortalNode.GetName());
+			portals[id] = {
+				id: id,
 				name: GetOrDefault_NXData(pPortalNode.Child('pn'), ''),
 				type: GetOrDefault_NXData(pPortalNode.Child('pt'), ''),
 				toMap: GetOrDefault_NXData(pPortalNode.Child('tm'), ''),
@@ -52,28 +54,30 @@ function Map(pNXNode) {
 				script: GetOrDefault_NXData(pPortalNode.Child('script'), ''),
 				x: GetOrDefault_NXData(pPortalNode.Child('x'), 0),
 				y: GetOrDefault_NXData(pPortalNode.Child('y'), 0)
-			
-			});
+			};
 		});
 	}
 	this.portals = portals;
 	
 	this.clients = [];
 	console.log('Loaded map: ' + this.id);
-	
 }
 
 Map.prototype = {
-	BroadcastPacket: function (pPacket) {
+	BroadcastPacket: function (pPacket, pSkipClient) {
 		this.clients.forEach(function (client) {
+			if (client === pSkipClient) return;
 			client.SendPacket(pPacket);
 		});
 	},
 	
 	AddClient: function (pClient) {
 		this.clients.push(pClient);
-		
-		this.BroadcastPacket(MapPackets.GetEnterMapPacket(pClient));
+
+		// Broadcast the user entering
+		this.BroadcastPacket(MapPackets.GetEnterMapPacket(pClient), pClient);
+
+		// Show other characters for player
 		this.clients.forEach(function (client) {
 			pClient.SendPacket(MapPackets.GetEnterMapPacket(client));
 		});
@@ -81,8 +85,21 @@ Map.prototype = {
 	
 	RemoveClient: function (pClient) {
 		this.clients.pop(pClient);
-		
-		this.BroadcastPacket(MapPackets.GetLeaveMapPacket(pClient));
+
+		this.BroadcastPacket(MapPackets.GetLeaveMapPacket(pClient), pClient);
+	},
+
+	GetPortalById: function (pId) {
+		pId = parseInt(pId);
+		if (this.portals.hasOwnProperty(pId)) return this.portals[pId];
+		return null;
+	},
+	
+	GetPortalByName: function (pName) {
+		for (var index in this.portals) {
+			if (this.portals[index].name === pName) return this.portals[index];
+		}
+		return null;
 	}
 
 };

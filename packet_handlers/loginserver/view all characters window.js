@@ -1,7 +1,4 @@
-var wait = require('wait.for');
-
-function SendCharacters(pSocket, pWorldId, pCharacters) {
-	
+function SendCharacters(pClient, pWorldId, pCharacters) {
 	var packet = new PacketWriter(0x0008);
 	packet.WriteUInt8(0);
 
@@ -18,12 +15,14 @@ function SendCharacters(pSocket, pWorldId, pCharacters) {
 	}
 	
 	
-	pSocket.SendPacket(packet);
+	pClient.SendPacket(packet);
 }
 
-PacketHandler.SetHandler(0x000D, function (pSocket, pReader) {
-	if (!pSocket.account) {
-		pSocket.Disconnect();
+PacketHandler.SetHandler(0x000D, function (pClient, pReader) {
+	// View all characters (clicked VAC button)
+
+	if (!pClient.account) {
+		pClient.Disconnect('Trying to view all characters while not loggedin');
 		return;
 	}
 
@@ -31,7 +30,7 @@ PacketHandler.SetHandler(0x000D, function (pSocket, pReader) {
 	var worlds = {};
 	for (var worldName in worldInConfig) {
 		var worldId = worldInConfig[worldName].id;
-		worlds[worldId] = pSocket.account.GetCharacters(worldId);
+		worlds[worldId] = pClient.account.GetCharacters(worldId);
 	}
 
 	
@@ -46,18 +45,18 @@ PacketHandler.SetHandler(0x000D, function (pSocket, pReader) {
 	packet.WriteUInt32(totalCharacters);
 	packet.WriteUInt32(totalCharacters + (3 - totalCharacters % 3));
 	
-	pSocket.SendPacket(packet);
+	pClient.SendPacket(packet);
 	
 	
 	
 	for (var worldId in worlds) {
 		if (worlds[worldId].length == 0) continue;
-		SendCharacters(pSocket, worldId, worlds[worldId]);
+		SendCharacters(pClient, worldId, worlds[worldId]);
 	}
 });
 
 
-function EnterChannel(pSocket, pCharacterId, pWorldId) {
+function EnterChannel(pClient, pCharacterId, pWorldId) {
 	var world = GetWorldInfoById(pWorldId);
 	var channel = (world.channels * Math.random()) >>> 0;
 	
@@ -70,13 +69,13 @@ function EnterChannel(pSocket, pCharacterId, pWorldId) {
 	packet.WriteUInt8(0); // Flag bit 1 set = korean popup?
 	packet.WriteUInt32(0); // Minutes left on Internet Cafe?
 	
-	pSocket.SendPacket(packet);
+	pClient.SendPacket(packet);
 }
 
-PacketHandler.SetHandler(0x0020, function (pSocket, pReader) {
+PacketHandler.SetHandler(0x0020, function (pClient, pReader) {
 	// Select VAC character with PIC
-	if (!pSocket.account) {
-		pSocket.Disconnect();
+	if (!pClient.account) {
+		pClient.Disconnect('Trying to select character in VAC window (PIC) while not loggedin');
 		return;
 	}
 	
@@ -86,13 +85,13 @@ PacketHandler.SetHandler(0x0020, function (pSocket, pReader) {
 	var macAddr = pReader.ReadString();
 	var macAddrNoDashes = pReader.ReadString();
 	
-	EnterChannel(pSocket, characterId, worldId); // Todo: Add check if the character is in this world AND from the same account
+	EnterChannel(pClient, characterId, worldId); // Todo: Add check if the character is in this world AND from the same account
 });
 
-PacketHandler.SetHandler(0x000E, function (pSocket, pReader) {
+PacketHandler.SetHandler(0x000E, function (pClient, pReader) {
 	// Select VAC character without PIC
-	if (!pSocket.account) {
-		pSocket.Disconnect();
+	if (!pClient.account) {
+		pClient.Disconnect('Trying to select character in VAC window while not loggedin');
 		return;
 	}
 	
@@ -101,5 +100,5 @@ PacketHandler.SetHandler(0x000E, function (pSocket, pReader) {
 	var macAddr = pReader.ReadString();
 	var macAddrNoDashes = pReader.ReadString();
 	
-	EnterChannel(pSocket, characterId, worldId); // Todo: Add check if the character is in this world AND from the same account
+	EnterChannel(pClient, characterId, worldId); // Todo: Add check if the character is in this world AND from the same account
 });

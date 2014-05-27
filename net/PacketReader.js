@@ -4,6 +4,24 @@ exports.PacketReader = function PacketReader(pData) {
 	
 	this.offset = 0;
 
+	this.ReadInt8 = function () {
+		var ret = this.buffer.readInt8(this.offset);
+		this.offset += 1;
+		return ret;
+	};
+
+	this.ReadInt16 = function () {
+		var ret = this.buffer.readInt16LE(this.offset);
+		this.offset += 2;
+		return ret;
+	};
+
+	this.ReadInt32 = function () {
+		var ret = this.buffer.readInt32LE(this.offset);
+		this.offset += 4;
+		return ret;
+	};
+
 	this.ReadUInt8 = function () {
 		var ret = this.buffer.readUInt8(this.offset);
 		this.offset += 1;
@@ -22,6 +40,18 @@ exports.PacketReader = function PacketReader(pData) {
 		return ret;
 	};
 
+	this.ReadFloat32 = function () {
+		var ret = this.buffer.readFloatLE(this.offset);
+		this.offset += 4;
+		return ret;
+	};
+
+	this.ReadFloat64 = function () {
+		var ret = this.buffer.readDoubleLE(this.offset);
+		this.offset += 8;
+		return ret;
+	};
+
 	this.ReadString = function (pLength) {
 		pLength = pLength || this.ReadUInt16();
 		var ret = '';
@@ -32,5 +62,9 @@ exports.PacketReader = function PacketReader(pData) {
 		}
 		this.offset += pLength;
 		return ret;
+	};
+	
+	this.Skip = function (pAmount) {
+		this.offset += pAmount;
 	};
 };

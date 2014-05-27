@@ -54,45 +54,18 @@ ForAllFiles('./datafiles/scripts', '*.js', function (pPath, pFileName) {
 	require(pPath);
 });
 
+var Server = require('./net/Server.js');
+
 var server = new Server(config.instanceName, config.port, ServerConfig.version, ServerConfig.subversion, ServerConfig.locale);
 server.InitializePacketHandlers('channelserver');
 
 server.channelId = config.channelId;
 server.worldId = config.worldId;
 
-setInterval(function () {
-	var clientsCopy = server.connectedClients.slice();
-	var packet = new PacketWriter(0x0011);
-	
-	for (var i = 0; i < clientsCopy.length; i++) {
-		try {
-			var client = clientsCopy[i];
-			if (client.ponged == false) {
-				console.log('Terminated client');
-				client.Disconnect(); // Exterminate.
-				continue;
-			}
-			client.ponged = false;
-			client.SendPacket(packet);
-		}
-		catch (ex) {
-			console.log(ex);
-		}
-	}
-}, 15000);
+server.StartPinger();
 
 process.on('SIGINT', function() {
-	var clientsCopy = server.connectedClients.slice();
-	var i;
-	for (i = 0; i < clientsCopy.length; i++) {
-		try {
-			clientsCopy[i].Disconnect();
-		}
-		catch (ex) {
-			console.log(ex);
-		}
-	}
-	console.log('Kicked ' + i);
+	server.Close();
 	console.log('TERMINATE');
 	process.exit();
 });

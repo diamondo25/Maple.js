@@ -1,23 +1,29 @@
-var wait = require('wait.for');
-
-PacketHandler.SetHandler(0x0014, function (pSocket, pReader) {
-	var characterId = pReader.ReadUInt32();
-	
-	var character = FindDocumentByCutoffId(Character, characterId, {
-		worldId: pSocket.server.worldId
-	})
-	
-	console.log(character);
-	if (!character) {
-		console.log('No character found!');
-		pSocket.Disconnect();
+PacketHandler.SetHandler(0x0014, function (pClient, pReader) {
+	if (pClient.character) {
+		pClient.Disconnect('Trying to load while already loaded.');
 		return;
 	}
 	
-	pSocket.character = character;
-	pSocket.account = wait.forMethod(Account, 'findOne', { _id: character.accountId });
+	var characterId = pReader.ReadUInt32();
 	
-	character.mapId = 709000605;
+	var character = FindDocumentByCutoffId(Character, characterId, {
+		worldId: pClient.server.worldId
+	})
+	
+	if (!character) {
+		pClient.Disconnect('Character not found!');
+		return;
+	}
+	
+	pClient.character = character;
+	pClient.account = wait.forMethod(Account, 'findOne', { _id: character.account });
+	
+	if (!pClient.account) {
+		pClient.Disconnect('Account not found!');
+		return;
+	}
+	
+	character.mapId = 100000000;
 	
 	// Kick back user if needed
 	var map = GetMap(character.mapId);
@@ -25,11 +31,22 @@ PacketHandler.SetHandler(0x0014, function (pSocket, pReader) {
 		character.mapId = map.forcedReturn;
 		map = GetMap(character.mapId);
 	}
+	character.mapPos = character.mapPos || 0;
 	
+	pClient.location = new MovableLife();
+	
+	var spawnpoint = map.GetPortalById(character.mapPos);
+	console.log(spawnpoint);
+	if (spawnpoint) {
+		pClient.location.x = spawnpoint.x;
+		pClient.location.y = spawnpoint.y;
+	}
+	
+	pClient.portalCount = 1;
 	
 	var packet = new PacketWriter(0x007D);
-	packet.WriteUInt32(pSocket.server.channelId);
-	packet.WriteUInt8(1); // Portal count
+	packet.WriteUInt32(pClient.server.channelId);
+	packet.WriteUInt8(pClient.portalCount); // Portal count
 	packet.WriteUInt8(true);
 	packet.WriteUInt16(0);
 	
@@ -158,8 +175,8 @@ PacketHandler.SetHandler(0x0014, function (pSocket, pReader) {
 	
 	packet.WriteDate(new Date()); // Current time
 	
-	pSocket.SendPacket(packet);
+	pClient.SendPacket(packet);
 	
 	
-	map.AddClient(pSocket);
+	map.AddClient(pClient);
 });

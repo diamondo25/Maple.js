@@ -1,5 +1,4 @@
 global.Int64 = require('int64-native');
-var wait = require('wait.for');
 
 global.GetFiletimeFromDate = function (pDate) {
 	if (!(pDate instanceof Date)) return null;
@@ -33,7 +32,9 @@ global.GetOrDefault = function (pValue, pDefault) {
 
 global.GetOrDefault_NXData = function (pNode, pDefault) {
 	if (pNode === null || typeof pNode === 'undefined') return pDefault;
-	return pNode.GetData();
+	var data = pNode.GetData();
+	if (data instanceof Int64) return data.low32();
+	return data;
 };
 
 global.AddLeftPadding = function (pValue, pLength, pPaddingCharacter) {
@@ -143,4 +144,17 @@ global.FindDocumentByCutoffId = function (pModel, pDocumentId, pFilterAdditions)
 
 global.GetInventoryOfItemId = function (pItemId) {
     return (pItemId / 10000000) >>> 0;
+};
+
+
+global.IsInsideBox = function (pWhatX, pWhatY, pInX, pInY, pMaxDistance) {
+	return ((pInX - pMaxDistance) <= pWhatX && (pInX + pMaxDistance) >= pWhatX) && ((pInY - pMaxDistance) <= pWhatY && (pInY + pMaxDistance) >= pWhatY);
+};
+
+global.IsInsideRadius = function (pWhatX, pWhatY, pInX, pInY, pMaxRadius) {
+	return Distance(pWhatX, pWhatY, pInX, pInY) <= pMaxRadius;
+};
+
+global.Distance = function (pX1, pY1, pX2, pY2) {
+	return Math.sqrt(Math.pow(pX1 - pX2, 2) + Math.pow(pY1 - pY2, 2));
 };

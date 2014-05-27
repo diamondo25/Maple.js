@@ -1,7 +1,7 @@
 var bcrypt = require('bcrypt'),
 	wait = require('wait.for');
 
-PacketHandler.SetHandler(0x0001, function (pSocket, pReader) {
+PacketHandler.SetHandler(0x0001, function (pClient, pReader) {
 	var username = pReader.ReadString();
 	var password = pReader.ReadString();
 	
@@ -30,7 +30,7 @@ PacketHandler.SetHandler(0x0001, function (pSocket, pReader) {
 		}
 		
 		if (!account) {
-			pSocket.SendPacket(packet);
+			pClient.SendPacket(packet);
 			return;
 		}
 		
@@ -70,7 +70,7 @@ PacketHandler.SetHandler(0x0001, function (pSocket, pReader) {
 		}
 		else {
 			console.log(username + ' login = okay');
-			var account = pSocket.account = account;
+			var account = pClient.account = account;
 			packet.WriteUInt16(0);
 			packet.WriteUInt32(0);
 			
@@ -101,5 +101,5 @@ PacketHandler.SetHandler(0x0001, function (pSocket, pReader) {
 		packet.WriteUInt32(0);
 	}
 	
-	pSocket.SendPacket(packet);
+	pClient.SendPacket(packet);
 });

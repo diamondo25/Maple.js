@@ -1,5 +1,3 @@
-var wait = require('wait.for');
-
 function CheckNameValidity(pName, pAdmin) {
 	if (!pAdmin) {
 		// Check if is a forbidden name
@@ -41,11 +39,11 @@ function CheckItemValidity(pJob, pFemale, pElement, pObjectId) {
 	return valid;
 }
 
-PacketHandler.SetHandler(0x0015, function (pSocket, pReader) {
+PacketHandler.SetHandler(0x0015, function (pClient, pReader) {
 	// Check character name
 	
-	if (!pSocket.account || !pSocket.state) {
-		pSocket.Disconnect();
+	if (!pClient.account || !pClient.state) {
+		pClient.Disconnect('Trying the check character name while not loggedin');
 		return;
 	}
 	
@@ -54,21 +52,21 @@ PacketHandler.SetHandler(0x0015, function (pSocket, pReader) {
 	var taken = true;
 	if (name.length >= 4 && name.length <= 12) {
 		//found = wait.forMethod(Character, 'count', { name: name }) != 0;
-		taken = !CheckNameValidity(name, pSocket.account.isAdmin);
+		taken = !CheckNameValidity(name, pClient.account.isAdmin);
 	}
 	
 	var packet = new PacketWriter(0x000D);
 	packet.WriteString(name);
 	packet.WriteUInt8(taken); // Taken bool
 	
-	pSocket.SendPacket(packet);
+	pClient.SendPacket(packet);
 });
 
 
-PacketHandler.SetHandler(0x0017, function (pSocket, pReader) {
-	// Check character name
-	if (!pSocket.account || !pSocket.state) {
-		pSocket.Disconnect();
+PacketHandler.SetHandler(0x0017, function (pClient, pReader) {
+	// Deleting character
+	if (!pClient.account || !pClient.state) {
+		pClient.Disconnect('Trying the check character name while not loggedin');
 		return;
 	}
 	
@@ -76,12 +74,16 @@ PacketHandler.SetHandler(0x0017, function (pSocket, pReader) {
 	
 	var id = pReader.ReadUInt32();
 	var character = FindDocumentByCutoffId(Character, id, {
-		account: pSocket.account._id,
-		worldId: pSocket.state.worldId
+		worldId: pClient.state.worldId
 	});
 	
 	if (!character) {
-		pSocket.Disconnect();
+		pClient.Disconnect('Character did not exist.');
+		return;
+	}
+	
+	if (!pClient.account.equals(character.account)) {
+		pClient.Disconnect('Client tried to delete someone elses character.');
 		return;
 	}
 	
@@ -91,44 +93,44 @@ PacketHandler.SetHandler(0x0017, function (pSocket, pReader) {
 	packet.WriteUInt32(id);
 	packet.WriteUInt8(0);
 	
-	pSocket.SendPacket(packet);
+	pClient.SendPacket(packet);
 });
 
-function EnterChannel(pSocket, pCharacterId) {
-	var world = GetWorldInfoById(pSocket.state.worldId);
+function EnterChannel(pClient, pCharacterId) {
+	var world = GetWorldInfoById(pClient.state.worldId);
 	
 	// Remote-hack vulnerable
 	var packet = new PacketWriter(0x000C);
 	packet.WriteUInt16(0);
 	packet.WriteBytes(IPStringToBytes(world.publicIP));
-	packet.WriteUInt16(world.portStart + pSocket.state.channelId);
+	packet.WriteUInt16(world.portStart + pClient.state.channelId);
 	packet.WriteUInt32(pCharacterId);
 	packet.WriteUInt8(0); // Flag bit 1 set = korean popup?
 	packet.WriteUInt32(0); // Minutes left on Internet Cafe?
 	
-	pSocket.SendPacket(packet);
+	pClient.SendPacket(packet);
 }
 
-PacketHandler.SetHandler(0x0013, function (pSocket, pReader) {
+PacketHandler.SetHandler(0x0013, function (pClient, pReader) {
 	// Select character
 	
-	if (!pSocket.account || !pSocket.state) {
-		pSocket.Disconnect();
+	if (!pClient.account || !pClient.state) {
+		pClient.Disconnect();
 		return;
 	}
 	
 	var characterId = pReader.ReadUInt32();
 	var macAddr = pReader.ReadString();
 	var macAddrNoDashes = pReader.ReadString();
-	EnterChannel(pSocket, characterId);
+	EnterChannel(pClient, characterId);
 });
 
 
-PacketHandler.SetHandler(0x001E, function (pSocket, pReader) {
-	// Select character
+PacketHandler.SetHandler(0x001E, function (pClient, pReader) {
+	// Select character using PIC
 	
-	if (!pSocket.account || !pSocket.state) {
-		pSocket.Disconnect();
+	if (!pClient.account || !pClient.state) {
+		pClient.Disconnect();
 		return;
 	}
 	var pic = pReader.ReadString();
@@ -136,20 +138,23 @@ PacketHandler.SetHandler(0x001E, function (pSocket, pReader) {
 	var characterId = pReader.ReadUInt32();
 	var macAddr = pReader.ReadString();
 	var macAddrNoDashes = pReader.ReadString();
-	EnterChannel(pSocket, characterId);
+	EnterChannel(pClient, characterId);
 });
 
 
-PacketHandler.SetHandler(0x0016, function (pSocket, pReader) {
+PacketHandler.SetHandler(0x0016, function (pClient, pReader) {
 	// Create character
 	
-	if (!pSocket.account || !pSocket.state) {
-		pSocket.Disconnect();
+	if (!pClient.account || !pClient.state) {
+		pClient.Disconnect();
 		return;
 	}
 	
 	var name = pReader.ReadString();
-	if (name.length < 4 || name.length > 12) throw 'Name not inside length boundaries. Name: ' + name;
+	if (name.length < 4 || name.length > 12) {
+		pClient.Disconnect('Name not inside length boundaries. Name: ' + name);
+		return;
+	}
 	
 	var type = pReader.ReadUInt32();
 	var startJob = 0, startMap = 0;
@@ -174,20 +179,24 @@ PacketHandler.SetHandler(0x0016, function (pSocket, pReader) {
 	var weapon = pReader.ReadUInt32();
 	var female = pReader.ReadUInt8() == 1;
 	
+	function ItemError(pWhat) {
+		pClient.Disconnect('[Character Creation] Invalid ' + pWhat);
+	}
+	
 	// Check items
-	if (!CheckItemValidity(startJob, female, 0, eyes)) throw '[Character Creation] Invalid eyes';
-	if (!CheckItemValidity(startJob, female, 1, hair)) throw '[Character Creation] Invalid hair';
-	if (!CheckItemValidity(startJob, female, 2, hairColor)) throw '[Character Creation] Invalid hairColor';
-	if (!CheckItemValidity(startJob, female, 3, skin)) throw '[Character Creation] Invalid skin';
-	if (!CheckItemValidity(startJob, female, 4, top)) throw '[Character Creation] Invalid top';
-	if (!CheckItemValidity(startJob, female, 5, bottom)) throw '[Character Creation] Invalid bottom';
-	if (!CheckItemValidity(startJob, female, 6, shoes)) throw '[Character Creation] Invalid shoes';
-	if (!CheckItemValidity(startJob, female, 7, weapon)) throw '[Character Creation] Invalid weapon';
+	if (!CheckItemValidity(startJob, female, 0, eyes)) return ItemError('eyes');
+	if (!CheckItemValidity(startJob, female, 1, hair)) return ItemError('hair');
+	if (!CheckItemValidity(startJob, female, 2, hairColor)) return ItemError('hairColor');
+	if (!CheckItemValidity(startJob, female, 3, skin)) return ItemError('skin');
+	if (!CheckItemValidity(startJob, female, 4, top)) return ItemError('top');
+	if (!CheckItemValidity(startJob, female, 5, bottom)) return ItemError('bottom');
+	if (!CheckItemValidity(startJob, female, 6, shoes)) return ItemError('shoes');
+	if (!CheckItemValidity(startJob, female, 7, weapon)) return ItemError('weapon');
 	
 	
 	var character = new Character({
-		account: pSocket.account,
-		worldId: pSocket.state.worldId,
+		account: pClient.account,
+		worldId: pClient.state.worldId,
 		name: name,
 		eyes: eyes,
 		hair: hair + hairColor,
@@ -195,6 +204,7 @@ PacketHandler.SetHandler(0x0016, function (pSocket, pReader) {
 		female: female,
 		
 		mapId: startMap,
+		mapPos: 0,
 		
 		stats: {
 			level: 1,
@@ -251,5 +261,5 @@ PacketHandler.SetHandler(0x0016, function (pSocket, pReader) {
 	packet.WriteUInt8(0); // ?
 	packet.WriteUInt8(false); // No rankings
 	
-	pSocket.SendPacket(packet);
+	pClient.SendPacket(packet);
 });

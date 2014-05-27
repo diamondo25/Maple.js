@@ -1,7 +1,7 @@
 var handlers = {};
 var handlerCount = 0;
 
-function DummyHandler(pSocket, pPacket) {
+function DummyHandler(pClient, pPacket) {
 	pPacket.offset = 0;
 	console.log('Unhandled packet: ' + pPacket.ReadUInt16().toString(16));
 	console.log(pPacket.buffer);

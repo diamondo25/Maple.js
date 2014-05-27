@@ -1,5 +1,4 @@
 require('./Item.js');
-var wait = require('wait.for');
 
 var characterSchema = Mongoose.Schema({
 	account: Mongoose.Schema.ObjectId,
@@ -141,23 +140,5 @@ characterSchema.methods.AddAvatar = function AddAvatar(pPacket) {
 	pPacket.WriteUInt32(0);
 	pPacket.WriteUInt32(0);
 };
-
-characterSchema.methods.RandomizeLook = function RandomizeLook() {
-	var charnx = DataFiles.character;
-	{
-		var dir = charnx.Child('Face');
-		var amount = dir.child_count;
-		var id = Math.floor(amount * Math.random());
-		this.eyes = parseInt(dir.ChildById(id).GetName());
-	}
-	{
-		var dir = charnx.Child('Hair');
-		var amount = dir.child_count;
-		var id = Math.floor(amount * Math.random());
-		this.hair = parseInt(dir.ChildById(id).GetName());
-	}
-	this.save();
-};
-
 
 global.Character = Mongoose.model('Character', characterSchema);

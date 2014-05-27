@@ -1,13 +1,8 @@
-function CheckIfValid(pSocket) {
-	if (!pSocket.account) return false;
-	return true;
-}
-
-var showWorldsPacketHandler = function (pSocket, pReader) {
+var showWorldsPacketHandler = function (pClient, pReader) {
 	// Request worlds
 	
-	if (!pSocket.account) {
-		pSocket.Disconnect();
+	if (!pClient.account) {
+		pClient.Disconnect('Trying to view worlds while not loggedin');
 		return;
 	}
 	
@@ -42,24 +37,24 @@ var showWorldsPacketHandler = function (pSocket, pReader) {
 			packet.WriteUInt16(dialog.y);
 			packet.WriteString(dialog.text);
 		}
-		pSocket.SendPacket(packet);
+		pClient.SendPacket(packet);
 	}
 	
 	packet = new PacketWriter(0x000A);
 	packet.WriteUInt8(0xFF);
 	
-	pSocket.SendPacket(packet);
+	pClient.SendPacket(packet);
 	
 };
 
 PacketHandler.SetHandler(0x0004, showWorldsPacketHandler);
 PacketHandler.SetHandler(0x000B, showWorldsPacketHandler);
 
-PacketHandler.SetHandler(0x0006, function (pSocket, pReader) {
+PacketHandler.SetHandler(0x0006, function (pClient, pReader) {
 	// Request world state
 	
-	if (!CheckIfValid(pSocket)) {
-		pSocket.Disconnect();
+	if (!pClient.account) {
+		pClient.Disconnect('Trying to select world while not loggedin');
 		return;
 	}
 	
@@ -67,14 +62,14 @@ PacketHandler.SetHandler(0x0006, function (pSocket, pReader) {
 	packet.WriteUInt8(0);
 	packet.WriteUInt8(0);
 	
-	pSocket.SendPacket(packet);
+	pClient.SendPacket(packet);
 });
 
-PacketHandler.SetHandler(0x0005, function (pSocket, pReader) {
+PacketHandler.SetHandler(0x0005, function (pClient, pReader) {
 	// Select channel
 	
-	if (!pSocket.account) {
-		pSocket.Disconnect();
+	if (!pClient.account) {
+		pClient.Disconnect('Trying to select channel while not loggedin');
 		return;
 	}
 	
@@ -89,14 +84,14 @@ PacketHandler.SetHandler(0x0005, function (pSocket, pReader) {
 		packet.WriteUInt8(8);
 	}
 	else {
-		pSocket.state = {
+		pClient.state = {
 			worldId: worldId,
 			channelId: channelId
 		};
 	
 		packet.WriteUInt8(0);
 		
-		var characters = pSocket.account.GetCharacters(pSocket.state.worldId);
+		var characters = pClient.account.GetCharacters(pClient.state.worldId);
 		packet.WriteUInt8(characters.length);
 		
 		for (var i = 0; i < characters.length; i++) {
@@ -126,5 +121,5 @@ PacketHandler.SetHandler(0x0005, function (pSocket, pReader) {
 	}
 	
 	
-	pSocket.SendPacket(packet);
+	pClient.SendPacket(packet);
 });
