@@ -1,9 +1,9 @@
 var bcrypt = require('bcrypt'),
 	wait = require('wait.for');
 
-PacketHandler.SetHandler(0x0001, function (pClient, pReader) {
-	var username = pReader.ReadString();
-	var password = pReader.ReadString();
+PacketHandler.setHandler(0x0001, function (client, reader) {
+	var username = reader.readString();
+	var password = reader.readString();
 	
 	var packet = new global.PacketWriter(0x0000);
 	try {
@@ -12,8 +12,8 @@ PacketHandler.SetHandler(0x0001, function (pClient, pReader) {
 		if (!account) {
 			console.log(username + ' login = not found');
 			if (!ServerConfig.enableAutoregister) {
-				packet.WriteUInt16(5);
-				packet.WriteUInt32(0);
+				packet.writeUInt16(5);
+				packet.writeUInt32(0);
 			}
 			else {
 				// Autoregister
@@ -30,7 +30,7 @@ PacketHandler.SetHandler(0x0001, function (pClient, pReader) {
 		}
 		
 		if (!account) {
-			pClient.SendPacket(packet);
+			client.sendPacket(packet);
 			return;
 		}
 		
@@ -53,53 +53,53 @@ PacketHandler.SetHandler(0x0001, function (pClient, pReader) {
 		
 		if (account.loggedIn) {
 			console.log(username + ' login = already logged in');
-			packet.WriteUInt16(7);
-			packet.WriteUInt32(0);
+			packet.writeUInt16(7);
+			packet.writeUInt32(0);
 		}
 		else if (account.password !== password) {
 			console.log(username + ' login = invalid pass');
-			packet.WriteUInt16(4);
-			packet.WriteUInt32(0);
+			packet.writeUInt16(4);
+			packet.writeUInt32(0);
 		}
 		else if (account.banResetDate > new Date()) {
 			console.log(username + ' login = banned');
-			packet.WriteUInt16(2);
-			packet.WriteUInt32(0);
-			packet.WriteUInt8(account.banReason);
-			packet.WriteDate(account.banResetDate);
+			packet.writeUInt16(2);
+			packet.writeUInt32(0);
+			packet.writeUInt8(account.banReason);
+			packet.writeDate(account.banResetDate);
 		}
 		else {
 			console.log(username + ' login = okay');
-			var account = pClient.account = account;
-			packet.WriteUInt16(0);
-			packet.WriteUInt32(0);
+			client.account = account;
+			packet.writeUInt16(0);
+			packet.writeUInt32(0);
 			
-			packet.WriteUInt32(GetDocumentId(account));
-			packet.WriteUInt8(0);
-			packet.WriteUInt8(account.isAdmin ? 0x40 : 0); // Admin flag
-			packet.WriteUInt8(0);
-			packet.WriteUInt8(0);
-			packet.WriteString(account.name);
-			packet.WriteUInt8(0);
-			packet.WriteUInt8(account.muteReason);
-			packet.WriteDate(account.muteResetDate);
+			packet.writeUInt32(getDocumentId(account));
+			packet.writeUInt8(0);
+			packet.writeUInt8(account.isAdmin ? 0x40 : 0); // Admin flag
+			packet.writeUInt8(0);
+			packet.writeUInt8(0);
+			packet.writeString(account.name);
+			packet.writeUInt8(0);
+			packet.writeUInt8(account.muteReason);
+			packet.writeDate(account.muteResetDate);
 			
-			packet.WriteDate(account.creationDate);
+			packet.writeDate(account.creationDate);
 			
-			packet.WriteUInt32(0);
+			packet.writeUInt32(0);
 			
 			// PIC info
-			packet.WriteUInt8(true);
-			packet.WriteUInt8(1);
+			packet.writeUInt8(true);
+			packet.writeUInt8(1);
 		}
 		
 	}
 	catch (exception) {
 		console.log(username + ' login = error');
-		console.log(exception);
-		packet.WriteUInt16(10); // too many requests
-		packet.WriteUInt32(0);
+		console.error(exception, exception.stacktrace);
+		packet.writeUInt16(10); // too many requests
+		packet.writeUInt32(0);
 	}
 	
-	pClient.SendPacket(packet);
+	client.sendPacket(packet);
 });

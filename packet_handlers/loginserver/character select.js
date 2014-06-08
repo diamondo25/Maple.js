@@ -1,9 +1,9 @@
-function CheckNameValidity(pName, pAdmin) {
-	if (!pAdmin) {
+function CheckNameValidity(name, admin) {
+	if (!admin) {
 		// Check if is a forbidden name
 		var forbidden = false;
-		DataFiles.etc.Child('ForbiddenName.img').ForEach(function (pNode) {
-			if (pName.indexOf(pNode.GetData()) !== -1) {
+		DataFiles.etc.child('ForbiddenName.img').forEach(function (node) {
+			if (name.indexOf(node.getData()) !== -1) {
 				forbidden = true;
 				return false;
 			}
@@ -11,26 +11,25 @@ function CheckNameValidity(pName, pAdmin) {
 		if (forbidden) return false;
 	}
 	
-	return wait.forMethod(Character, 'count', { name: pName }) == 0;
+	return wait.forMethod(Character, 'count', { name: name }) === 0;
 }
 
-function CheckItemValidity(pJob, pFemale, pElement, pObjectId) {
+function CheckItemValidity(job, female, element, objectId) {
 	var infoName = '';
-	switch (pJob) {
+	switch (job) {
 		case 0: infoName = 'Info/Char'; break; // Adventurer
 		case 1000: infoName = 'PremiumChar'; break; // Cygnus
 		case 2000: infoName = 'OrientChar'; break; // Aran
 	}
 	
-	infoName += pFemale ? 'Female' : 'Male';
+	infoName += female ? 'Female' : 'Male';
 	
-	infoName += '/' + pElement;
+	infoName += '/' + element;
 
 	var valid = false;
 	
-	DataFiles.etc.GetPath('MakeCharInfo.img/' + infoName).ForEach(function (pNode) {
-		var objectId = pNode.GetData();
-		if (pObjectId == objectId) {
+	DataFiles.etc.getPath('MakeCharInfo.img/' + infoName).forEach(function (node) {
+		if (objectId === node.getData()) {
 			valid = true;
 			return false;
 		}
@@ -39,148 +38,148 @@ function CheckItemValidity(pJob, pFemale, pElement, pObjectId) {
 	return valid;
 }
 
-PacketHandler.SetHandler(0x0015, function (pClient, pReader) {
+PacketHandler.setHandler(0x0015, function (client, reader) {
 	// Check character name
 	
-	if (!pClient.account || !pClient.state) {
-		pClient.Disconnect('Trying the check character name while not loggedin');
+	if (!client.account || !client.state) {
+		client.disconnect('Trying the check character name while not loggedin');
 		return;
 	}
 	
-	var name = pReader.ReadString();
+	var name = reader.readString();
 	
 	var taken = true;
 	if (name.length >= 4 && name.length <= 12) {
 		//found = wait.forMethod(Character, 'count', { name: name }) != 0;
-		taken = !CheckNameValidity(name, pClient.account.isAdmin);
+		taken = !CheckNameValidity(name, client.account.isAdmin);
 	}
 	
 	var packet = new PacketWriter(0x000D);
-	packet.WriteString(name);
-	packet.WriteUInt8(taken); // Taken bool
+	packet.writeString(name);
+	packet.writeUInt8(taken); // Taken bool
 	
-	pClient.SendPacket(packet);
+	client.sendPacket(packet);
 });
 
 
-PacketHandler.SetHandler(0x0017, function (pClient, pReader) {
+PacketHandler.setHandler(0x0017, function (client, reader) {
 	// Deleting character
-	if (!pClient.account || !pClient.state) {
-		pClient.Disconnect('Trying the check character name while not loggedin');
+	if (!client.account || !client.state) {
+		client.disconnect('Trying the check character name while not loggedin');
 		return;
 	}
 	
-	var pic = pReader.ReadString();
+	var pic = reader.readString();
 	
-	var id = pReader.ReadUInt32();
-	var character = FindDocumentByCutoffId(Character, id, {
-		worldId: pClient.state.worldId
+	var id = reader.readUInt32();
+	var character = findDocumentByCutoffId(Character, id, {
+		worldId: client.state.worldId
 	});
 	
 	if (!character) {
-		pClient.Disconnect('Character did not exist.');
+		client.disconnect('Character did not exist.');
 		return;
 	}
 	
-	if (!pClient.account.equals(character.account)) {
-		pClient.Disconnect('Client tried to delete someone elses character.');
+	if (!client.account.equals(character.account)) {
+		client.disconnect('Client tried to delete someone elses character.');
 		return;
 	}
 	
 	wait.forMethod(character, 'remove');
 	
 	var packet = new PacketWriter(0x000F);
-	packet.WriteUInt32(id);
-	packet.WriteUInt8(0);
+	packet.writeUInt32(id);
+	packet.writeUInt8(0);
 	
-	pClient.SendPacket(packet);
+	client.sendPacket(packet);
 });
 
-function EnterChannel(pClient, pCharacterId) {
-	var world = GetWorldInfoById(pClient.state.worldId);
+function EnterChannel(client, pCharacterId) {
+	var world = getWorldInfoById(client.state.worldId);
 	
 	// Remote-hack vulnerable
 	var packet = new PacketWriter(0x000C);
-	packet.WriteUInt16(0);
-	packet.WriteBytes(IPStringToBytes(world.publicIP));
-	packet.WriteUInt16(world.portStart + pClient.state.channelId);
-	packet.WriteUInt32(pCharacterId);
-	packet.WriteUInt8(0); // Flag bit 1 set = korean popup?
-	packet.WriteUInt32(0); // Minutes left on Internet Cafe?
+	packet.writeUInt16(0);
+	packet.writeBytes(ipStringToBytes(world.publicIP));
+	packet.writeUInt16(world.portStart + client.state.channelId);
+	packet.writeUInt32(pCharacterId);
+	packet.writeUInt8(0); // Flag bit 1 set = korean popup?
+	packet.writeUInt32(0); // Minutes left on Internet Cafe?
 	
-	pClient.SendPacket(packet);
+	client.sendPacket(packet);
 }
 
-PacketHandler.SetHandler(0x0013, function (pClient, pReader) {
+PacketHandler.setHandler(0x0013, function (client, reader) {
 	// Select character
 	
-	if (!pClient.account || !pClient.state) {
-		pClient.Disconnect();
+	if (!client.account || !client.state) {
+		client.disconnect();
 		return;
 	}
 	
-	var characterId = pReader.ReadUInt32();
-	var macAddr = pReader.ReadString();
-	var macAddrNoDashes = pReader.ReadString();
-	EnterChannel(pClient, characterId);
+	var characterId = reader.readUInt32();
+	var macAddr = reader.readString();
+	var macAddrNoDashes = reader.readString();
+	EnterChannel(client, characterId);
 });
 
 
-PacketHandler.SetHandler(0x001E, function (pClient, pReader) {
+PacketHandler.setHandler(0x001E, function (client, reader) {
 	// Select character using PIC
 	
-	if (!pClient.account || !pClient.state) {
-		pClient.Disconnect();
+	if (!client.account || !client.state) {
+		client.disconnect();
 		return;
 	}
-	var pic = pReader.ReadString();
+	var pic = reader.readString();
 	
-	var characterId = pReader.ReadUInt32();
-	var macAddr = pReader.ReadString();
-	var macAddrNoDashes = pReader.ReadString();
-	EnterChannel(pClient, characterId);
+	var characterId = reader.readUInt32();
+	var macAddr = reader.readString();
+	var macAddrNoDashes = reader.readString();
+	EnterChannel(client, characterId);
 });
 
 
-PacketHandler.SetHandler(0x0016, function (pClient, pReader) {
+PacketHandler.setHandler(0x0016, function (client, reader) {
 	// Create character
 	
-	if (!pClient.account || !pClient.state) {
-		pClient.Disconnect();
+	if (!client.account || !client.state) {
+		client.disconnect();
 		return;
 	}
 	
-	var name = pReader.ReadString();
+	var name = reader.readString();
 	if (name.length < 4 || name.length > 12) {
-		pClient.Disconnect('Name not inside length boundaries. Name: ' + name);
+		client.disconnect('Name not inside length boundaries. Name: ' + name);
 		return;
 	}
 	
-	var type = pReader.ReadUInt32();
+	var type = reader.readUInt32();
 	var startJob = 0, startMap = 0;
-	if (type == 0) {
+	if (type === 0) {
 		// Cygnus: Noblesse
 		startJob = 1000;
 		startMap = 130030000;
 	}
-	else if (type == 2) {
+	else if (type === 2) {
 		// Aran: Legend
 		startJob = 2000;
 		startMap = 914000000;
 	}
 	
-	var eyes = pReader.ReadUInt32();
-	var hair = pReader.ReadUInt32();
-	var hairColor = pReader.ReadUInt32();
-	var skin = pReader.ReadUInt32();
-	var top = pReader.ReadUInt32();
-	var bottom = pReader.ReadUInt32();
-	var shoes = pReader.ReadUInt32();
-	var weapon = pReader.ReadUInt32();
-	var female = pReader.ReadUInt8() == 1;
+	var eyes = reader.readUInt32();
+	var hair = reader.readUInt32();
+	var hairColor = reader.readUInt32();
+	var skin = reader.readUInt32();
+	var top = reader.readUInt32();
+	var bottom = reader.readUInt32();
+	var shoes = reader.readUInt32();
+	var weapon = reader.readUInt32();
+	var female = reader.readUInt8() == 1;
 	
 	function ItemError(pWhat) {
-		pClient.Disconnect('[Character Creation] Invalid ' + pWhat);
+		client.disconnect('[Character Creation] Invalid ' + pWhat);
 	}
 	
 	// Check items
@@ -195,8 +194,8 @@ PacketHandler.SetHandler(0x0016, function (pClient, pReader) {
 	
 	
 	var character = new Character({
-		account: pClient.account,
-		worldId: pClient.state.worldId,
+		account: client.account,
+		worldId: client.state.worldId,
 		name: name,
 		eyes: eyes,
 		hair: hair + hairColor,
@@ -245,21 +244,21 @@ PacketHandler.SetHandler(0x0016, function (pClient, pReader) {
 		wait.forMethod(item, 'save');
 	}
 	
-	if (top != 0) CreateItem(top, -5, 1);
-	if (bottom != 0) CreateItem(bottom, -6, 1);
-	if (shoes != 0) CreateItem(shoes, -7, 1);
-	if (weapon != 0) CreateItem(weapon, -11, 1);
+	if (top !== 0) CreateItem(top, -5, 1);
+	if (bottom !== 0) CreateItem(bottom, -6, 1);
+	if (shoes !== 0) CreateItem(shoes, -7, 1);
+	if (weapon !== 0) CreateItem(weapon, -11, 1);
 	CreateItem(4161001, 1, 2);
 	
 	
 	
 	var packet = new PacketWriter(0x000E);
-	packet.WriteUInt8(0);
+	packet.writeUInt8(0);
 
-	character.AddStats(packet);
-	character.AddAvatar(packet);
-	packet.WriteUInt8(0); // ?
-	packet.WriteUInt8(false); // No rankings
+	character.addStats(packet);
+	character.addAvatar(packet);
+	packet.writeUInt8(0); // ?
+	packet.writeUInt8(false); // No rankings
 	
-	pClient.SendPacket(packet);
+	client.sendPacket(packet);
 });

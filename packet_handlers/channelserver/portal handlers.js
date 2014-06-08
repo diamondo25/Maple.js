@@ -1,87 +1,89 @@
-PacketHandler.SetHandler(0x0064, function (pClient, pReader) {
+PacketHandler.setHandler(0x0064, function (client, reader) {
 	// Enter scripted portal
-	if (!pClient.character) {
-		pClient.Disconnect('Trying to enter portal while not loaded');
+	if (!client.character) {
+		client.disconnect('Trying to enter portal while not loaded');
 		return;
 	}
 	
-	if (pReader.ReadUInt8() != pClient.portalCount) {
+	if (reader.readUInt8() != client.portalCount) {
 		console.log('Entering portal while not in the same map.');
-		pClient.Disconnect();
+		client.disconnect();
 		return;
 	}
 	
-	var portalName = pReader.ReadString();
-	var x = pReader.ReadUInt16();
-	var y = pReader.ReadUInt16();
+	var portalName = reader.readString();
+	var x = reader.readUInt16();
+	var y = reader.readUInt16();
 	
 	console.log('Portal script...: ' + portalName);
 });
 
-PacketHandler.SetHandler(0x0026, function (pClient, pReader) {
+PacketHandler.setHandler(0x0026, function (client, reader) {
 	// Enter regular portal
-	if (!pClient.character) {
-		pClient.Disconnect('Trying to enter portal while not loaded');
+	if (!client.character) {
+		client.disconnect('Trying to enter portal while not loaded');
 		return;
 	}
 	
-	if (pReader.ReadUInt8() != pClient.portalCount) {
-		pClient.Disconnect('Entering portal on a different map (portalCount did not match)');
+	var portals = reader.readUInt8();
+	if (portals !== client.portalCount) {
+		console.warn('Entering portal on a different map (portalCount did not match: ' + portals + ' != ' + client.portalCount + ')');
 		return;
 	}
 	
-	var opcode = pReader.ReadInt32();
+	var mapPacket = packets.map;
+	
+	var opcode = reader.readInt32();
 	
 	switch (opcode) {
 		case 0:
 			// Dead
-			if (pClient.character.stats.hp != 0) {
-				pClient.Disconnect('Possible deadhack');
+			if (client.character.stats.hp !== 0) {
+				client.disconnect('Possible deadhack');
 				return;
 			}
 			break;
 
 		case -1:
 			// Entering portal
-			var portalName = pReader.ReadString();
-			var x = pReader.ReadUInt16();
-			var y = pReader.ReadUInt16();
+			var portalName = reader.readString();
+			var x = reader.readUInt16();
+			var y = reader.readUInt16();
 			
-			var map = GetMap(pClient.character.mapId);
-			var portal = map.GetPortalByName(portalName);
+			var map = getMap(client.character.mapId);
+			var portal = map.getPortalByName(portalName);
 			if (portal === null) {
-				pClient.SendPacket(MapPackets.GetPortalErrorPacket(MapPackets.PortalBlockedErrors.CANNOT_GO_TO_THAT_PLACE));
+				client.sendPacket(mapPacket.getPortalErrorPacket(mapPacket.PortalBlockedErrors.CANNOT_GO_TO_THAT_PLACE));
 				return;
 			}
 			
-			if (!IsInsideBox(pClient.location.x, pClient.location.y, portal.x, portal.y, 70)) {
-				pClient.Disconnect('Outside portal trigger range.');
+			if (!isInsideBox(client.location.x, client.location.y, portal.x, portal.y, 70)) {
+				client.disconnect('Outside portal trigger range.');
 				return;
 			}
 			
-			if (portal.script != '') {
+			if (portal.script !== '') {
 				// Run portal script... lol
 				console.log('Portal script...: ' + portal.script);
-				pClient.SendPacket(MapPackets.GetPortalErrorPacket(MapPackets.PortalBlockedErrors.CANNOT_GO_TO_THAT_PLACE));
+				client.sendPacket(mapPacket.getPortalErrorPacket(mapPacket.PortalBlockedErrors.CANNOT_GO_TO_THAT_PLACE));
 			}
 			else {
-				var newMap = GetMap(portal.toMap);
+				var newMap = getMap(portal.toMap);
 				if (newMap === null) {
-					pClient.SendPacket(MapPackets.GetPortalErrorPacket(MapPackets.PortalBlockedErrors.CANNOT_GO_TO_THAT_PLACE));
+					client.sendPacket(mapPacket.getPortalErrorPacket(mapPacket.PortalBlockedErrors.CANNOT_GO_TO_THAT_PLACE));
 				}
 				else {
-					var portalTo = newMap.GetPortalByName(portal.toName);
-					console.log(portalTo);
-					MapPackets.ChangeMap(pClient, portal.toMap, portalTo.id);
+					var portalTo = newMap.getPortalByName(portal.toName);
+					mapPacket.changeMap(client, portal.toMap, portalTo.id);
 				}
 			}
 			
 			break;
 		default:
 			// Admin /m command
-			if (!pClient.account.isAdmin) {
+			if (!client.account.isAdmin) {
 				console.log('Using admin /m command while not admin... :|');
-				pClient.Disconnect();
+				client.disconnect();
 				return;
 			}
 			break;

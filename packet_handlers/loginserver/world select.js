@@ -1,8 +1,8 @@
-var showWorldsPacketHandler = function (pClient, pReader) {
+var showWorldsPacketHandler = function (client, reader) {
 	// Request worlds
 	
-	if (!pClient.account) {
-		pClient.Disconnect('Trying to view worlds while not loggedin');
+	if (!client.account) {
+		client.disconnect('Trying to view worlds while not loggedin');
 		return;
 	}
 	
@@ -12,114 +12,114 @@ var showWorldsPacketHandler = function (pClient, pReader) {
 		var world = ServerConfig.worlds[worldName];
 		packet = new PacketWriter(0x000A);
 		
-		packet.WriteUInt8(world.id);
-		packet.WriteString(worldName);
-		packet.WriteUInt8(world.ribbon);
-		packet.WriteString(world.eventMessage);
-		packet.WriteUInt16(100); // EXP Rate
-		packet.WriteUInt16(100); // DROP Rate
-		packet.WriteUInt8(world.characterCreationDisabled);
+		packet.writeUInt8(world.id);
+		packet.writeString(worldName);
+		packet.writeUInt8(world.ribbon);
+		packet.writeString(world.eventMessage);
+		packet.writeUInt16(100); // EXP Rate
+		packet.writeUInt16(100); // DROP Rate
+		packet.writeUInt8(world.characterCreationDisabled);
 		
 		var channels = world.channels;
-		packet.WriteUInt8(channels);
+		packet.writeUInt8(channels);
 		for (var i = 1; i <= channels; i++) {
-			packet.WriteString(worldName + '-' + i);
-			packet.WriteUInt32(13132); // Online players
-			packet.WriteUInt8(world.id);
-			packet.WriteUInt8(i - 1);
-			packet.WriteUInt8(0);
+			packet.writeString(worldName + '-' + i);
+			packet.writeUInt32(13132); // Online players
+			packet.writeUInt8(world.id);
+			packet.writeUInt8(i - 1);
+			packet.writeUInt8(0);
 		}
 		
-		packet.WriteUInt16(world.dialogs.length);
+		packet.writeUInt16(world.dialogs.length);
 		for (var i = 0; i < world.dialogs.length; i++) {
 			var dialog = world.dialogs[i];
-			packet.WriteUInt16(dialog.x);
-			packet.WriteUInt16(dialog.y);
-			packet.WriteString(dialog.text);
+			packet.writeUInt16(dialog.x);
+			packet.writeUInt16(dialog.y);
+			packet.writeString(dialog.text);
 		}
-		pClient.SendPacket(packet);
+		client.sendPacket(packet);
 	}
 	
 	packet = new PacketWriter(0x000A);
-	packet.WriteUInt8(0xFF);
+	packet.writeUInt8(0xFF);
 	
-	pClient.SendPacket(packet);
+	client.sendPacket(packet);
 	
 };
 
-PacketHandler.SetHandler(0x0004, showWorldsPacketHandler);
-PacketHandler.SetHandler(0x000B, showWorldsPacketHandler);
+PacketHandler.setHandler(0x0004, showWorldsPacketHandler);
+PacketHandler.setHandler(0x000B, showWorldsPacketHandler);
 
-PacketHandler.SetHandler(0x0006, function (pClient, pReader) {
+PacketHandler.setHandler(0x0006, function (client, reader) {
 	// Request world state
 	
-	if (!pClient.account) {
-		pClient.Disconnect('Trying to select world while not loggedin');
+	if (!client.account) {
+		client.disconnect('Trying to select world while not loggedin');
 		return;
 	}
 	
 	var packet = new PacketWriter(0x0003);
-	packet.WriteUInt8(0);
-	packet.WriteUInt8(0);
+	packet.writeUInt8(0);
+	packet.writeUInt8(0);
 	
-	pClient.SendPacket(packet);
+	client.sendPacket(packet);
 });
 
-PacketHandler.SetHandler(0x0005, function (pClient, pReader) {
+PacketHandler.setHandler(0x0005, function (client, reader) {
 	// Select channel
 	
-	if (!pClient.account) {
-		pClient.Disconnect('Trying to select channel while not loggedin');
+	if (!client.account) {
+		client.disconnect('Trying to select channel while not loggedin');
 		return;
 	}
 	
-	if (pReader.ReadUInt8() !== 2) return;
-	var worldId = pReader.ReadUInt8();
-	var channelId = pReader.ReadUInt8();
+	if (reader.readUInt8() !== 2) return;
+	var worldId = reader.readUInt8();
+	var channelId = reader.readUInt8();
 	
-	var world = GetWorldInfoById(worldId);
+	var world = getWorldInfoById(worldId);
 	
 	var packet = new PacketWriter(0x000B);
 	if (world === null || channelId < 0 || channelId > world.channels) {
-		packet.WriteUInt8(8);
+		packet.writeUInt8(8);
 	}
 	else {
-		pClient.state = {
+		client.state = {
 			worldId: worldId,
 			channelId: channelId
 		};
 	
-		packet.WriteUInt8(0);
+		packet.writeUInt8(0);
 		
-		var characters = pClient.account.GetCharacters(pClient.state.worldId);
-		packet.WriteUInt8(characters.length);
-		
+		var characters = client.account.getCharacters(client.state.worldId);
+		packet.writeUInt8(characters.length);
+
 		for (var i = 0; i < characters.length; i++) {
 			var character = characters[i];
+
+			character.addStats(packet);
+			character.addAvatar(packet);
 			
-			character.AddStats(packet);
-			character.AddAvatar(packet);
+			packet.writeUInt8(0); // ?
 			
-			packet.WriteUInt8(0); // ?
-			
-			packet.WriteUInt8(false); // No rankings
-			// packet.WriteUInt32(character.rankWorld);
-			// packet.WriteUInt32(character.rankWorldChange);
-			// packet.WriteUInt32(character.rankJob);
-			// packet.WriteUInt32(character.rankJobChange);
+			packet.writeUInt8(false); // No rankings
+			// packet.writeUInt32(character.rankWorld);
+			// packet.writeUInt32(character.rankWorldChange);
+			// packet.writeUInt32(character.rankJob);
+			// packet.writeUInt32(character.rankJobChange);
 			/*
-			packet.WriteUInt32(1);
-			packet.WriteUInt32(1);
-			packet.WriteUInt32(1);
-			packet.WriteUInt32(1);
+			packet.writeUInt32(1);
+			packet.writeUInt32(1);
+			packet.writeUInt32(1);
+			packet.writeUInt32(1);
 			*/
 		}
 		
 		
-		packet.WriteUInt8(1); // PIC registered
-		packet.WriteUInt32(6); // Max Characters
+		packet.writeUInt8(1); // PIC registered
+		packet.writeUInt32(6); // Max Characters
 	}
 	
 	
-	pClient.SendPacket(packet);
+	client.sendPacket(packet);
 });

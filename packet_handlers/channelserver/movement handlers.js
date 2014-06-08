@@ -1,25 +1,29 @@
-PacketHandler.SetHandler(0x0029, function (pClient, pReader) {
+PacketHandler.setHandler(0x0029, function (client, reader) {
 	// Player movement
-	if (!pClient.character) {
-		pClient.Disconnect('Trying to move while not loaded');
+	if (!client.character) {
+		client.disconnect('Trying to move while not loaded');
 		return;
 	}
 	
-	var portalCount = pReader.ReadUInt8();
-	pReader.Skip(4); // Seems to be some unique value per-map
+	var portals = reader.readUInt8();
+	if (portals !== client.portalCount) {
+		console.warn('Moving on a different map (portalCount did not match: ' + portals + ' != ' + client.portalCount + ')');
+		return;
+	}
+	
+	
+	reader.skip(4); // Seems to be some unique value per-map
 
-	var movePath = pClient.location.DecodeMovePath(pReader, false);
-	if (movePath.length == 0) {
+	var movePath = client.location.decodeMovePath(reader, false);
+	if (movePath.length === 0) {
 		// Sending this to a client actually crashes it!
-		pClient.Disconnect('Empty move path');
+		client.disconnect('Empty move path');
 		return;
 	}
 
 	var packet = new PacketWriter(0x00B9);
-	packet.WriteUInt32(GetDocumentId(pClient.character));
-	packet.WriteUInt32(0);
-	MovableLife.EncodeMovePath(movePath, packet);
+	packet.writeUInt32(getDocumentId(client.character));
+	MovableLife.encodeMovePath(movePath, packet);
 	
-	GetMap(pClient.character.mapId).BroadcastPacket(packet, pClient);
-	
+	getMap(client.character.mapId).broadcastPacket(packet, client);
 });

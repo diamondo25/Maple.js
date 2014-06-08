@@ -1,182 +1,192 @@
-PacketHandler.SetHandler(0x0014, function (pClient, pReader) {
-	if (pClient.character) {
-		pClient.Disconnect('Trying to load while already loaded.');
+PacketHandler.setHandler(0x0014, function (client, reader) {
+	if (client.character) {
+		client.disconnect('Trying to load while already loaded.');
 		return;
 	}
 	
-	var characterId = pReader.ReadUInt32();
+	var characterId = reader.readUInt32();
 	
-	var character = FindDocumentByCutoffId(Character, characterId, {
-		worldId: pClient.server.worldId
-	})
+	var character = findDocumentByCutoffId(Character, characterId, {
+		worldId: client.server.worldId
+	});
 	
 	if (!character) {
-		pClient.Disconnect('Character not found!');
+		client.disconnect('Character not found!');
 		return;
 	}
 	
-	pClient.character = character;
-	pClient.account = wait.forMethod(Account, 'findOne', { _id: character.account });
+	client.character = character;
+	client.account = wait.forMethod(Account, 'findOne', { _id: character.account });
 	
-	if (!pClient.account) {
-		pClient.Disconnect('Account not found!');
+	if (!client.account) {
+		client.disconnect('Account not found!');
 		return;
 	}
 	
 	character.mapId = 100000000;
 	
 	// Kick back user if needed
-	var map = GetMap(character.mapId);
+	var map = getMap(character.mapId);
 	if (map.forcedReturn != 999999999) {
 		character.mapId = map.forcedReturn;
-		map = GetMap(character.mapId);
+		map = getMap(character.mapId);
 	}
 	character.mapPos = character.mapPos || 0;
 	
-	pClient.location = new MovableLife();
+	client.location = new MovableLife();
 	
-	var spawnpoint = map.GetPortalById(character.mapPos);
-	console.log(spawnpoint);
+	var spawnpoint = map.getPortalById(character.mapPos);
+
 	if (spawnpoint) {
-		pClient.location.x = spawnpoint.x;
-		pClient.location.y = spawnpoint.y;
+		client.location.x = spawnpoint.x;
+		client.location.y = spawnpoint.y;
 	}
 	
-	pClient.portalCount = 1;
+	client.portalCount = 1;
+	client.lastTickCount = -1;
+	
+	
+	// Send data to player
 	
 	var packet = new PacketWriter(0x007D);
-	packet.WriteUInt32(pClient.server.channelId);
-	packet.WriteUInt8(pClient.portalCount); // Portal count
-	packet.WriteUInt8(true);
-	packet.WriteUInt16(0);
+	packet.writeUInt32(client.server.channelId);
+	packet.writeUInt8(client.portalCount); // Portal count
+	packet.writeUInt8(true);
+	packet.writeUInt16(0);
 	
 	// RNGs
-	packet.WriteUInt32(123123312);
-	packet.WriteUInt32(234232);
-	packet.WriteUInt32(123123132);
+	packet.writeUInt32(123123312);
+	packet.writeUInt32(234232);
+	packet.writeUInt32(123123132);
 	
-	packet.WriteBytes([0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF]);
-	packet.WriteUInt8(0);
+	packet.writeBytes([0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF]);
+	packet.writeUInt8(0);
 	
-	character.AddStats(packet);
+	character.addStats(packet);
 	
-	packet.WriteUInt8(20); // Buddylist size
-	packet.WriteUInt8(false); // Blessing of the Fairy name
-	
+	packet.writeUInt8(20); // Buddylist size
+	packet.writeUInt8(false); // Blessing of the Fairy name
+
+	var j, i, item;
 	{
 		// Inventory
-		packet.WriteUInt32(character.inventory.mesos);
-		for (var i = 0; i < 5; i++)
-			packet.WriteUInt8(character.inventory.maxSlots[i]);
+		packet.writeUInt32(character.inventory.mesos);
+		for (i = 0; i < 5; i++)
+			packet.writeUInt8(character.inventory.maxSlots[i]);
 	
-		packet.WriteUInt64(new Int64('0x14F373BFDE04000'));
+		packet.writeUInt64(new Int64('0x14F373BFDE04000'));
 		
-		var equips = character.GetInventory(1);
+		var equips = character.getInventory(1);
 		
+
 		// Regular
-		for (var j = 0; j < equips.length; j++) {
-			var item = equips[j];
+		for (j = 0; j < equips.length; j++) {
+			item = equips[j];
 			if (!(item.slot > -100 && item.slot <= 0)) continue;
-			packet.WriteUInt16(Math.abs(item.slot));
-			WriteItemPacketData(item, packet);
+			
+			packet.writeUInt16(Math.abs(item.slot));
+			writeItemPacketData(item, packet);
 		}
-		packet.WriteUInt16(0);
+		packet.writeUInt16(0);
 		
 		// Cash
-		for (var j = 0; j < equips.length; j++) {
-			var item = equips[j];
+		for (j = 0; j < equips.length; j++) {
+			item = equips[j];
 			if (!(item.slot > -200 && item.slot <= -100)) continue;
-			packet.WriteUInt16(Math.abs(item.slot));
-			WriteItemPacketData(item, packet);
+			
+			packet.writeUInt16(Math.abs(item.slot));
+			writeItemPacketData(item, packet);
 		}
-		packet.WriteUInt16(0);
+		packet.writeUInt16(0);
 		
 		// Equip Inventory
-		for (var j = 0; j < equips.length; j++) {
-			var item = equips[j];
-			if (!(item.slot > 0)) continue;
-			packet.WriteUInt16(Math.abs(item.slot));
-			WriteItemPacketData(item, packet);
+		for (j = 0; j < equips.length; j++) {
+			item = equips[j];
+			if (item.slot <= 0) continue;
+			
+			packet.writeUInt16(Math.abs(item.slot));
+			writeItemPacketData(item, packet);
 		}
-		packet.WriteUInt16(0);
+		packet.writeUInt16(0);
 		
 		// Evan
-		for (var j = 0; j < equips.length; j++) {
-			var item = equips[j];
+		for (j = 0; j < equips.length; j++) {
+			item = equips[j];
 			if (!(item.slot >= 1000 && item.slot < 1004)) continue;
-			packet.WriteUInt16(Math.abs(item.slot));
-			WriteItemPacketData(item, packet);
+			
+			packet.writeUInt16(Math.abs(item.slot));
+			writeItemPacketData(item, packet);
 		}
-		packet.WriteUInt16(0);
+		packet.writeUInt16(0);
 		
-		for (var i = 2; i <= 5; i++) {
+		for (i = 2; i <= 5; i++) {
 			// For each inventory...
-			var inventory = character.GetInventory(i);
-			for (var j = 0; j < inventory.length; j++) {
-				var item = inventory[j];
-				packet.WriteUInt8(item.slot);
-				WriteItemPacketData(item, packet);
+			var inventory = character.getInventory(i);
+			for (j = 0; j < inventory.length; j++) {
+				item = inventory[j];
+				packet.writeUInt8(item.slot);
+				writeItemPacketData(item, packet);
 			}
-			packet.WriteUInt8(0);
+			packet.writeUInt8(0);
 		}
 	}
 	
 	{
 		// Skills
-		var skills = FindRows(Skill, 'characterId', character);
-		packet.WriteUInt16(skills.length); // Unlocked
-		for (var i = 0; i < skills.length; i++) {
+		var skills = findRows(Skill, 'characterId', character);
+		packet.writeUInt16(skills.length); // Unlocked
+		for (i = 0; i < skills.length; i++) {
 			var skill = skills[i];
-			packet.WriteUInt32(skill.skillId);
-			packet.WriteUInt32(skill.points);
+			packet.writeUInt32(skill.skillId);
+			packet.writeUInt32(skill.points);
 			
 			if (skill.expires === null)
-				packet.WriteUInt64(Constants.Item.NoExpiration);
+				packet.writeUInt64(Constants.Item.NoExpiration);
 			else
-				packet.WriteDate(skill.expires);
+				packet.writeDate(skill.expires);
 
 			if ((Math.floor(skill.skillId / 10000) % 10) == 2)
-				packet.WriteUInt32(skill.maxLevel);
+				packet.writeUInt32(skill.maxLevel);
 		}
 
-		packet.WriteUInt16(0); // Cooldowns
+		packet.writeUInt16(0); // Cooldowns
 	}
 	
 	{
 		// Quests
-		packet.WriteUInt16(0); // Running
-		packet.WriteUInt16(0); // Finished
+		packet.writeUInt16(0); // Running
+		packet.writeUInt16(0); // Finished
 	}
 	
-	packet.WriteUInt16(0); // Crush Rings
-	packet.WriteUInt16(0); // Friend Rings
-	packet.WriteUInt16(0); // Marriage Rings
-	packet.WriteUInt16(0);
+	packet.writeUInt16(0); // Crush Rings
+	packet.writeUInt16(0); // Friend Rings
+	packet.writeUInt16(0); // Marriage Rings
+	packet.writeUInt16(0);
 	
 	{
 		// Teleport Rocks
-		for (var i = 0; i < 5; i++)
-			packet.WriteUInt32(999999999);
+		for (i = 0; i < 5; i++)
+			packet.writeUInt32(999999999);
 		
-		for (var i = 0; i < 10; i++)
-			packet.WriteUInt32(999999999);
+		for (i = 0; i < 10; i++)
+			packet.writeUInt32(999999999);
 	}
 	
 	{
 		// Monsterbook
-		packet.WriteUInt32(0); // Cover
-		packet.WriteUInt8(0); // 'readmode'
-		packet.WriteUInt16(0); // cards
+		packet.writeUInt32(0); // Cover
+		packet.writeUInt8(0); // 'readmode'
+		packet.writeUInt16(0); // cards
 	}
 	
-	packet.WriteUInt16(0);
-	packet.WriteUInt16(0);
-	packet.WriteUInt16(0);
+	packet.writeUInt16(0);
+	packet.writeUInt16(0);
+	packet.writeUInt16(0);
 	
-	packet.WriteDate(new Date()); // Current time
+	packet.writeDate(new Date()); // Current time
 	
-	pClient.SendPacket(packet);
+	client.sendPacket(packet);
 	
 	
-	map.AddClient(pClient);
+	map.addClient(client);
 });
