@@ -1,30 +1,32 @@
-exports.DecryptData = function (pData, pSequence) {
-	this.AESTransform(pData, pSequence);
+var Socket = {};
+
+Socket.decryptData = function (data, sequence) {
+	this.transformAES(data, sequence);
 	
-	this.DecryptMapleCrypto(pData);
+	this.decryptMapleCrypto(data);
 };
 
-exports.EncryptData = function (pData, pSequence) {
-	this.EncryptMapleCrypto(pData);
+Socket.encryptData = function (data, sequence) {
+	this.encryptMapleCrypto(data);
 	
-	this.AESTransform(pData, pSequence);
+	this.transformAES(data, sequence);
 };
 
-exports.GetLengthFromHeader = function (pData) {
-	var length = pData[0] | pData[1] << 8 | pData[2] << 16 | pData[3] << 24;
+Socket.getLengthFromHeader = function (data) {
+	var length = data[0] | data[1] << 8 | data[2] << 16 | data[3] << 24;
 	return ((length >>> 16) ^ (length & 0xFFFF)) & 0xFFFF;
 };
 
 
-exports.GenerateHeader = function (pData, pSequence, pLength, pVersion) {
-	var a = pSequence[2] | pSequence[3] << 8;
-	a ^= pVersion;
-	var b = a ^ pLength;
+Socket.generateHeader = function (data, sequence, length, version) {
+	var a = sequence[2] | sequence[3] << 8;
+	a ^= version;
+	var b = a ^ length;
 	
-	pData[0] = a & 0xFF;
-	pData[1] = (a >>> 8) & 0xFF;
-	pData[2] = b & 0xFF;
-	pData[3] = (b >>> 8) & 0xFF;
+	data[0] = a & 0xFF;
+	data[1] = (a >>> 8) & 0xFF;
+	data[2] = b & 0xFF;
+	data[3] = (b >>> 8) & 0xFF;
 };
 
 var sequenceShiftingKey = new Uint8Array([
@@ -46,11 +48,11 @@ var sequenceShiftingKey = new Uint8Array([
 	0x84, 0x7F, 0x61, 0x1E, 0xCF, 0xC5, 0xD1, 0x56, 0x3D, 0xCA, 0xF4, 0x05, 0xC6, 0xE5, 0x08, 0x49
 ]);
 
-exports.MorphSequence = function (pCurrentSequence) {
+Socket.morphSequence = function (currentSequence) {
 	var newSequence = new Uint8Array([0xF2, 0x53, 0x50, 0xC6]);
 	
 	for (var i = 0; i < 4; i++) {
-		var input = pCurrentSequence[i];
+		var input = currentSequence[i];
 		var tableInput = sequenceShiftingKey[input];
 		newSequence[0] += (sequenceShiftingKey[newSequence[1]] - input);
 		newSequence[1] -= (newSequence[2] ^ tableInput);
@@ -70,56 +72,56 @@ exports.MorphSequence = function (pCurrentSequence) {
 	return newSequence;
 };
 
-function RollLeft(pValue, pShift) {
-	var overflow = ((pValue >>> 0) << (pShift % 8)) >>> 0;
+function rollLeft(value, shift) {
+	var overflow = ((value >>> 0) << (shift % 8)) >>> 0;
 	var ret = ((overflow & 0xFF) | (overflow >>> 8)) & 0xFF;
 	return ret;
 }
 
-function RollRight(pValue, pShift) {
-	var overflow = (((pValue >>> 0) << 8) >>> (pShift % 8));
+function rollRight(value, shift) {
+	var overflow = (((value >>> 0) << 8) >>> (shift % 8));
 	var ret = ((overflow & 0xFF) | (overflow >>> 8)) & 0xFF;
 	return ret;
 }
 
-exports.EncryptMapleCrypto = function (pData) {	
-	var length = pData.length, j;
+Socket.encryptMapleCrypto = function (data) {	
+	var length = data.length, j;
 	var a, c;
 	for (var i = 0; i < 3; i++)
 	{
 		a = 0;
 		for (j = length; j > 0; j--)
 		{
-			c = pData[length - j];
-			c = RollLeft(c, 3);
+			c = data[length - j];
+			c = rollLeft(c, 3);
 			c += j;
 			c &= 0xFF; // Addition
 			c ^= a;
 			a = c;
-			c = RollRight(a, j);
+			c = rollRight(a, j);
 			c ^= 0xFF;
 			c += 0x48;
 			c &= 0xFF; // Addition
-			pData[length - j] = c;
+			data[length - j] = c;
 		}
 		a = 0;
 		for (j = length; j > 0; j--)
 		{
-			c = pData[j - 1];
-			c = RollLeft(c, 4);
+			c = data[j - 1];
+			c = rollLeft(c, 4);
 			c += j;
 			c &= 0xFF; // Addition
 			c ^= a;
 			a = c;
 			c ^= 0x13;
-			c = RollRight(c, 3);
-			pData[j - 1] = c;
+			c = rollRight(c, 3);
+			data[j - 1] = c;
 		}
 	}
 };
 
-exports.DecryptMapleCrypto = function (pData) {
-	var length = pData.length, j;
+Socket.decryptMapleCrypto = function (data) {
+	var length = data.length, j;
 	var a, b, c;
 	for (var i = 0; i < 3; i++)
 	{
@@ -127,33 +129,33 @@ exports.DecryptMapleCrypto = function (pData) {
 		b = 0;
 		for (j = length; j > 0; j--)
 		{
-			c = pData[j - 1];
-			c = RollLeft(c, 3);
+			c = data[j - 1];
+			c = rollLeft(c, 3);
 			c ^= 0x13;
 			a = c;
 			c ^= b;
 			c -= j;
 			c &= 0xFF; // Addition
-			c = RollRight(c, 4);
+			c = rollRight(c, 4);
 			b = a;
-			pData[j - 1] = c;
+			data[j - 1] = c;
 		}
 		a = 0;
 		b = 0;
 		for (j = length; j > 0; j--)
 		{
-			c = pData[length - j];
+			c = data[length - j];
 			c -= 0x48;
 			c &= 0xFF; // Addition
 			c ^= 0xFF;
-			c = RollLeft(c, j);
+			c = rollLeft(c, j);
 			a = c;
 			c ^= b;
 			c -= j;
 			c &= 0xFF; // Addition
-			c = RollRight(c, 3);
+			c = rollRight(c, 3);
 			b = a;
-			pData[length - j] = c;
+			data[length - j] = c;
 		}
 	}
 };
@@ -173,29 +175,32 @@ var aesKey = new Buffer([
 
 var aes = require('crypto').createCipheriv('aes-256-ecb', aesKey, '');
 
-exports.AESTransform = function (pData, pSequence) {
-	var length = pData.length;
+Socket.transformAES = function test(data, sequence) {
+	var length = data.length;
 	var sequenceCopy = new Buffer([
-		pSequence[0], pSequence[1], pSequence[2], pSequence[3], 
-		pSequence[0], pSequence[1], pSequence[2], pSequence[3], 
-		pSequence[0], pSequence[1], pSequence[2], pSequence[3], 
-		pSequence[0], pSequence[1], pSequence[2], pSequence[3]
+		sequence[0], sequence[1], sequence[2], sequence[3], 
+		sequence[0], sequence[1], sequence[2], sequence[3], 
+		sequence[0], sequence[1], sequence[2], sequence[3], 
+		sequence[0], sequence[1], sequence[2], sequence[3]
 	]);
 	
 	
 	for (var i = 0; i < length; ) {
-		var block = Math.min(length - i, (i == 0 ? 1456 : 1460));
+		var block = Math.min(length - i, (i === 0 ? 1456 : 1460));
 		
 		var xorKey = sequenceCopy.slice();
 		
 		for (var j = 0; j < block; j++) {
-			if ((j % 16) == 0) {
+			if ((j % 16) === 0) {
 				xorKey = aes.update(xorKey);
 			}
 			
-			pData[i + j] ^= xorKey[j % 16];
+			data[i + j] ^= xorKey[j % 16];
 		}
 
 		i += block;
 	}
 };
+
+
+module.exports = Socket;
