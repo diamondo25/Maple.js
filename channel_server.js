@@ -12,8 +12,8 @@ var config = {
 };
 
 global.ServerConfig = require('./config.json');
-global.PacketWriter = require('./net/PacketWriter.js').PacketWriter;
-global.PacketReader = require('./net/PacketReader.js').PacketReader;
+global.PacketWriter = require('./net/PacketWriter.js');
+global.PacketReader = require('./net/PacketReader.js');
 global.Mongoose = require('mongoose');
 global.wait = require('wait.for');
 
@@ -23,7 +23,7 @@ var nx = require('nx-parser');
 console.log('Starting Maple.js ChannelServer (V' + ServerConfig.version + '.' + ServerConfig.subversion + ', ' + ServerConfig.locale + ')...');
 console.log('World ID: ' + config.worldId + ', Channel ID: ' + config.channelId);
 
-console.log('Connecting with the Database...');
+console.log('Establishing MongoDB connection...');
 Mongoose.connect(ServerConfig.databaseConnectionString);
 
 console.log('Loading JavaScript objects...');
@@ -39,33 +39,50 @@ global.DataFiles = {
 	etc: new nx.file('./datafiles/Etc.nx'),
 };
 
-ForAllFiles('./objects', '*.js', function (pPath, pFileName) {
-	require(pPath);
-	console.log(' - Objects in ' + pFileName + ' loaded');
+forAllFiles('./objects', '*.js', function (path, fileName) {
+	console.log(' - Loading ' + fileName + '...');
+	require(path);
+	console.log(' - Objects in ' + fileName + ' loaded');
 });
 
-ForAllFiles('./objects/channel_server', '*.js', function (pPath, pFileName) {
-	require(pPath);
-	console.log(' - Objects in ' + pFileName + ' loaded');
+forAllFiles('./objects/channel_server', '*.js', function (path, fileName) {
+	require(path);
+	console.log(' - Objects in ' + fileName + ' loaded');
 });
 
 console.log('Loading Scripts...');
-ForAllFiles('./datafiles/scripts', '*.js', function (pPath, pFileName) {
-	require(pPath);
+forAllFiles('./datafiles/scripts', '*.js', function (path, fileName) {
+	require(path);
 });
 
 var Server = require('./net/Server.js');
 
 var server = new Server(config.instanceName, config.port, ServerConfig.version, ServerConfig.subversion, ServerConfig.locale);
-server.InitializePacketHandlers('channelserver');
+server.initializePacketHandlers('channelserver');
 
 server.channelId = config.channelId;
 server.worldId = config.worldId;
 
-server.StartPinger();
+server.startPinger();
+
 
 process.on('SIGINT', function() {
 	server.Close();
 	console.log('TERMINATE');
 	process.exit();
 });
+
+// Extra methods
+
+
+global.isInvalidTickCount = function (client, category, newTickCount) {
+	if (client.lastTickCount !== -1) {
+		if (client.lastTickCount > newTickCount) {
+			client.disconnect('Tickcount reverted?! (Category: ' + category + ')');
+			return true;
+		}
+	}
+
+	client.lastTickCount = newTickCount;
+	return false;
+};

@@ -14,9 +14,10 @@ for (var i = 2; i < process.argv.length; i++) {
 
 var child_process = require('child_process');
 
-function SpawnInstance(pLoggerName, pProcessName, pArguments) {
-	console.log('Spawning ' + pProcessName + ' ' + pArguments.join(' '));
-	var instance = child_process.spawn(pProcessName, pArguments);
+function spawnInstance(pLoggerName, pProcessName, arguments) {
+	console.log('Spawning ' + pProcessName + ' ' + arguments.join(' '));
+	var instance = child_process.spawn(pProcessName, arguments);
+	
 	instance.stdout.setEncoding('utf8');
 	instance.stdout.on('data', function (pData) {
 		var lines = pData.split("\n");
@@ -46,7 +47,7 @@ if (startLoginServers) {
 	for (var index in ServerConfig.loginservers) {
 		var instanceName = 'loginserver-' + index;
 		var loginserver = ServerConfig.loginservers[index];
-		instances[instanceName] = SpawnInstance('Login-' + (index + 1), 'node', ['login_server', instanceName, loginserver.port]);
+		instances[instanceName] = spawnInstance('Login-' + (parseInt(index) + 1), 'node', ['login_server', instanceName, loginserver.port]);
 	}
 }
 
@@ -55,7 +56,7 @@ if (startChannelServers) {
 		var world = ServerConfig.worlds[worldName];
 		var instanceName = 'world-' + worldName + '-';
 		for (var i = 0; i < world.channels; i++) {
-			instances[instanceName + i] = SpawnInstance(worldName + '-' + (i + 1), 'node', ['channel_server', instanceName + i, world.portStart + i, world.id, i]);
+			instances[instanceName + i] = spawnInstance(worldName + '-' + (i + 1), 'node', ['channel_server', instanceName + i, world.portStart + i, world.id, i]);
 		}
 	}
 }

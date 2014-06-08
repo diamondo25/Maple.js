@@ -1,6 +1,6 @@
 global.Int64 = require('int64-native');
 
-global.GetFiletimeFromDate = function (pDate) {
+global.getFiletimeFromDate = function (pDate) {
 	if (!(pDate instanceof Date)) return null;
 	var rawTime = pDate.getTime();
 	rawTime += 11644473600000; // Seconds between 1601-01-01 00:00:00 and 1970-01-01 00:00:00
@@ -8,62 +8,62 @@ global.GetFiletimeFromDate = function (pDate) {
 	return new Int64(rawTime);
 };
 
-global.GetWorldInfoById = function (pId) {
+global.getWorldInfoById = function (id) {
 	for (var name in ServerConfig.worlds) {
-		if (ServerConfig.worlds[name].id == pId)
+		if (ServerConfig.worlds[name].id == id)
 			return ServerConfig.worlds[name];
 	}
 	return null;
 };
 
-global.GetJobTrack = function (pJob) {
-	return parseInt(pJob / 100);
+global.getJobTrack = function (job) {
+	return parseInt(job / 100, 10);
 };
 
-global.IPStringToBytes = function (pIP) {
-	var ipParts = pIP.split('.');
-	return [parseInt(ipParts[0]), parseInt(ipParts[1]), parseInt(ipParts[2]), parseInt(ipParts[3])];
+global.ipStringToBytes = function (ip) {
+	var ipParts = ip.split('.');
+	return [parseInt(ipParts[0], 10), parseInt(ipParts[1], 10), parseInt(ipParts[2], 10), parseInt(ipParts[3], 10)];
 };
 
-global.GetOrDefault = function (pValue, pDefault) {
-	if (pValue === null || typeof pValue === 'undefined') return pDefault;
-	return pValue;
+global.getOrDefault = function (value, defaultValue) {
+	if (value === null || typeof value === 'undefined') return defaultValue;
+	return value;
 };
 
-global.GetOrDefault_NXData = function (pNode, pDefault) {
-	if (pNode === null || typeof pNode === 'undefined') return pDefault;
-	var data = pNode.GetData();
+global.getOrDefault_NXData = function (node, defaultValue) {
+	if (node === null || typeof node === 'undefined') return defaultValue;
+	var data = node.getData();
 	if (data instanceof Int64) return data.low32();
 	return data;
 };
 
-global.AddLeftPadding = function (pValue, pLength, pPaddingCharacter) {
-	pPaddingCharacter = pPaddingCharacter || '0';
-	pValue = pValue.toString();
-	for (var i = pValue.length; i < pLength; i++)
-		pValue = pPaddingCharacter + pValue;
-	return pValue;
+global.addLeftPadding = function (value, length, paddingCharacter) {
+	paddingCharacter = paddingCharacter || '0';
+	value = value.toString();
+	for (var i = value.length; i < length; i++)
+		value = paddingCharacter + value;
+	return value;
 };
 
-global.AddRightPadding = function (pValue, pLength, pPaddingCharacter) {
-	pPaddingCharacter = pPaddingCharacter || '0';
-	pValue = pValue.toString();
-	for (var i = pValue.length; i < pLength; i++)
-		pValue += pPaddingCharacter;
-	return pValue;
+global.addRightPadding = function (value, length, paddingCharacter) {
+	paddingCharacter = paddingCharacter || '0';
+	value = value.toString();
+	for (var i = value.length; i < length; i++)
+		value += paddingCharacter;
+	return value;
 };
 
-global.CheckFileFilter = function (pFileName, pFilters) {
-	for (var filter in pFilters) {
-		var curFilter = pFilters[filter];
+global.checkFileFilter = function (fileName, filters) {
+	for (var filter in filters) {
+		var curFilter = filters[filter];
 		var okay = false;
 		if (curFilter.length == 1) {
-			if (curFilter[0] == '') // All filter
+			if (curFilter[0] === '') // All filter
 				return true;
 			
 			// 'hurrdurr.txt' === '.txt' ?
 			
-			if (pFileName.indexOf(curFilter[0]) !== -1) return true;
+			if (fileName.indexOf(curFilter[0]) !== -1) return true;
 		}
 		else {
 			var offset = 0;
@@ -73,7 +73,7 @@ global.CheckFileFilter = function (pFileName, pFilters) {
 				var text = curFilter[i];
 				if (text === '') continue;
 				// text = '.'
-				var tmp = pFileName.indexOf(text, offset);
+				var tmp = fileName.indexOf(text, offset);
 				if (tmp === -1) {
 					found = false;
 					break; // Continue with next filter
@@ -88,44 +88,43 @@ global.CheckFileFilter = function (pFileName, pFilters) {
 	return false;
 };
 
-global.ForAllFiles = function (pFolder, pFilter, pCallback) {
-	pFilter = pFilter || '*';
-	if (typeof pFilter === 'string') {
-		pFilter = pFilter.split(';');
-	}
-	for (var filter in pFilter) {
-		var tmp = pFilter[filter].split('*'); // For things like '*.png' and 'hurr*.txt' (['hurr', '.txt'])
+global.forAllFiles = function (folder, filter, callback) {
+	var filters = filter || '*';
+	filters = filters.split(';');
+	
+	for (var filter in filters) {
+		var tmp = filters[filter].split('*'); // For things like '*.png' and 'hurr*.txt' (['hurr', '.txt'])
 		
 		var tmp2 = [];
 		// Filter empty values
 		for (var i = 0; i < tmp.length; i++)
 			if (tmp[i] !== '') tmp2.push(tmp[i]);
 		
-		pFilter[filter] = tmp2;
+		filters[filter] = tmp2;
 	}
 	
-	require('fs').readdirSync(pFolder).forEach(function (pFileName) {
+	require('fs').readdirSync(folder).forEach(function (fileName) {
 		// Check if filename is okay
-		if (CheckFileFilter(pFileName, pFilter))
-			pCallback(pFolder + '/' + pFileName, pFileName);
+		if (checkFileFilter(fileName, filters))
+			callback(folder + '/' + fileName, fileName);
 	});
 };
 
-global.FindRows = function (pModel, pColumnName, pExpectedValue) {
+global.findRows = function (model, columnName, expectedValue) {
 	var searchObject = {};
-	searchObject[pColumnName] = pExpectedValue;
-	return wait.forMethod(pModel, 'find', searchObject);
+	searchObject[columnName] = expectedValue;
+	return wait.forMethod(model, 'find', searchObject);
 };
 
-global.GetDocumentId = function (pDocument) {
-    return parseInt('0x' + String(pDocument._id).substr(0, 8));
+global.getDocumentId = function (document) {
+    return parseInt(String(document._id).substr(0, 8), 16);
 };
 
-global.FindDocumentByCutoffId = function (pModel, pDocumentId, pFilterAdditions) {
-	var filter = pFilterAdditions || {};
-	pDocumentId = pDocumentId.toString(16);
+global.findDocumentByCutoffId = function (model, documentId, filterAdditions) {
+	var filter = filterAdditions || {};
+	documentId = documentId.toString(16);
 	
-	var query = pModel.find();
+	var query = model.find();
 	for (var index in filter) {
 		query = query.where(index).equals(filter[index]);
 	}
@@ -134,27 +133,27 @@ global.FindDocumentByCutoffId = function (pModel, pDocumentId, pFilterAdditions)
 	var rows = wait.forMethod(query, 'exec');
 	
 	for (var i = 0; i < rows.length; i++) {
-		if (rows[i]._id.toString().indexOf(pDocumentId) == 0) {
-			return wait.forMethod(pModel, 'findById', rows[i]._id);
+		if (rows[i]._id.toString().indexOf(documentId) === 0) {
+			return wait.forMethod(model, 'findById', rows[i]._id);
 		}
 	}
 	
 	return null;
 };
 
-global.GetInventoryOfItemId = function (pItemId) {
-    return (pItemId / 10000000) >>> 0;
+global.getInventoryOfItemId = function (itemId) {
+    return (itemId / 10000000) >>> 0;
 };
 
 
-global.IsInsideBox = function (pWhatX, pWhatY, pInX, pInY, pMaxDistance) {
-	return ((pInX - pMaxDistance) <= pWhatX && (pInX + pMaxDistance) >= pWhatX) && ((pInY - pMaxDistance) <= pWhatY && (pInY + pMaxDistance) >= pWhatY);
+global.isInsideBox = function (whatX, whatY, inX, inY, maxDistance) {
+	return ((inX - maxDistance) <= whatX && (inX + maxDistance) >= whatX) && ((inY - maxDistance) <= whatY && (inY + maxDistance) >= whatY);
 };
 
-global.IsInsideRadius = function (pWhatX, pWhatY, pInX, pInY, pMaxRadius) {
-	return Distance(pWhatX, pWhatY, pInX, pInY) <= pMaxRadius;
+global.isInsideRadius = function (whatX, whatY, inX, inY, maxRadius) {
+	return distance(whatX, whatY, inX, inY) <= maxRadius;
 };
 
-global.Distance = function (pX1, pY1, pX2, pY2) {
-	return Math.sqrt(Math.pow(pX1 - pX2, 2) + Math.pow(pY1 - pY2, 2));
+global.distance = function (x1, y1, x2, y2) {
+	return Math.sqrt(Math.pow(x1 - x2, 2) + Math.pow(y1 - y2, 2));
 };
