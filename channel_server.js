@@ -34,6 +34,7 @@ global.DataFiles = {
 	string: new nx.file('./datafiles/String.nx'),
 	map: new nx.file('./datafiles/Map.nx'),
 	mob: new nx.file('./datafiles/Mob.nx'),
+	npc: new nx.file('./datafiles/Npc.nx'),
 	skill: new nx.file('./datafiles/Skill.nx'),
 	reactor: new nx.file('./datafiles/Reactor.nx'),
 	etc: new nx.file('./datafiles/Etc.nx'),
@@ -86,3 +87,9 @@ global.isInvalidTickCount = function (client, category, newTickCount) {
 	client.lastTickCount = newTickCount;
 	return false;
 };
+
+
+var map = getMap(800030000);
+setInterval(function () {
+	map.lifePool.TrySpawnMobs(false);
+}, 4000);

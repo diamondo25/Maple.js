@@ -1,4 +1,4 @@
-function CheckNameValidity(name, admin) {
+function checkNameValidity(name, admin) {
 	if (!admin) {
 		// Check if is a forbidden name
 		var forbidden = false;
@@ -14,7 +14,7 @@ function CheckNameValidity(name, admin) {
 	return wait.forMethod(Character, 'count', { name: name }) === 0;
 }
 
-function CheckItemValidity(job, female, element, objectId) {
+function checkItemValidity(job, female, element, objectId) {
 	var infoName = '';
 	switch (job) {
 		case 0: infoName = 'Info/Char'; break; // Adventurer
@@ -51,7 +51,7 @@ PacketHandler.setHandler(0x0015, function (client, reader) {
 	var taken = true;
 	if (name.length >= 4 && name.length <= 12) {
 		//found = wait.forMethod(Character, 'count', { name: name }) != 0;
-		taken = !CheckNameValidity(name, client.account.isAdmin);
+		taken = !checkNameValidity(name, client.account.isAdmin);
 	}
 	
 	var packet = new PacketWriter(0x000D);
@@ -183,14 +183,14 @@ PacketHandler.setHandler(0x0016, function (client, reader) {
 	}
 	
 	// Check items
-	if (!CheckItemValidity(startJob, female, 0, eyes)) return ItemError('eyes');
-	if (!CheckItemValidity(startJob, female, 1, hair)) return ItemError('hair');
-	if (!CheckItemValidity(startJob, female, 2, hairColor)) return ItemError('hairColor');
-	if (!CheckItemValidity(startJob, female, 3, skin)) return ItemError('skin');
-	if (!CheckItemValidity(startJob, female, 4, top)) return ItemError('top');
-	if (!CheckItemValidity(startJob, female, 5, bottom)) return ItemError('bottom');
-	if (!CheckItemValidity(startJob, female, 6, shoes)) return ItemError('shoes');
-	if (!CheckItemValidity(startJob, female, 7, weapon)) return ItemError('weapon');
+	if (!checkItemValidity(startJob, female, 0, eyes)) return ItemError('eyes');
+	if (!checkItemValidity(startJob, female, 1, hair)) return ItemError('hair');
+	if (!checkItemValidity(startJob, female, 2, hairColor)) return ItemError('hairColor');
+	if (!checkItemValidity(startJob, female, 3, skin)) return ItemError('skin');
+	if (!checkItemValidity(startJob, female, 4, top)) return ItemError('top');
+	if (!checkItemValidity(startJob, female, 5, bottom)) return ItemError('bottom');
+	if (!checkItemValidity(startJob, female, 6, shoes)) return ItemError('shoes');
+	if (!checkItemValidity(startJob, female, 7, weapon)) return ItemError('weapon');
 	
 	
 	var character = new Character({
@@ -228,7 +228,7 @@ PacketHandler.setHandler(0x0016, function (client, reader) {
 	
 	// Create items
 	
-	function CreateItem(pItemId, pSlot, pInventory) {
+	function createItem(pItemId, pSlot, pInventory) {
 		var item;
 		if (pInventory == 1) {
 			item = new Equip();
@@ -244,11 +244,11 @@ PacketHandler.setHandler(0x0016, function (client, reader) {
 		wait.forMethod(item, 'save');
 	}
 	
-	if (top !== 0) CreateItem(top, -5, 1);
-	if (bottom !== 0) CreateItem(bottom, -6, 1);
-	if (shoes !== 0) CreateItem(shoes, -7, 1);
-	if (weapon !== 0) CreateItem(weapon, -11, 1);
-	CreateItem(4161001, 1, 2);
+	if (top !== 0) createItem(top, -5, 1);
+	if (bottom !== 0) createItem(bottom, -6, 1);
+	if (shoes !== 0) createItem(shoes, -7, 1);
+	if (weapon !== 0) createItem(weapon, -11, 1);
+	createItem(4161001, 1, 2);
 	
 	
 	

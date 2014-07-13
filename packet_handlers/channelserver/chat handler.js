@@ -6,7 +6,7 @@ PacketHandler.setHandler(0x0031, function (client, reader) {
 	}
 	
 	var text = reader.readString();
-	var shouting = reader.readUInt8() != 0;
+	var shouting = reader.readUInt8() !== 0;
 	
 	
 	var packet = new PacketWriter(0x00A2);

@@ -145,6 +145,10 @@ global.getInventoryOfItemId = function (itemId) {
     return (itemId / 10000000) >>> 0;
 };
 
+global.getNXImgName = function (id, zeroes) {
+	zeroes = zeroes || 7;
+	return addLeftPadding(id, zeroes, '0') + '.img';
+};
 
 global.isInsideBox = function (whatX, whatY, inX, inY, maxDistance) {
 	return ((inX - maxDistance) <= whatX && (inX + maxDistance) >= whatX) && ((inY - maxDistance) <= whatY && (inY + maxDistance) >= whatY);

@@ -2,9 +2,7 @@ function getItemCategory(itemId) {
 	return (itemId / 10000) >>> 0;
 }
 
-function getCharacterNXNode(itemId) {
-	var typeName = '';
-
+function getItemCategoryName(itemId) {
 	switch (getItemCategory(itemId)) {
 	
 		case 101:
@@ -12,42 +10,42 @@ function getCharacterNXNode(itemId) {
 		case 103:
 		case 112:
 		case 113:
-		case 114: typeName = 'Accessory'; break;
+		case 114: return 'Accessory';
 
-		case 100: typeName = 'Cap'; break;
+		case 100: return 'Cap';
 
-		case 110: typeName = 'Cape'; break;
+		case 110: return 'Cape';
 
-		case 104: typeName = 'Coat'; break;
+		case 104: return 'Coat';
 		
 		case 194:
 		case 195:
 		case 196:
-		case 197: typeName = 'Dragon'; break;
-		case 2: typeName = 'Face'; break;
+		case 197: return 'Dragon';
+		case 2: return 'Face';
 
-		case 108: typeName = 'Glove'; break;
+		case 108: return 'Glove';
 		
-		case 3: typeName = 'Hair'; break;
+		case 3: return 'Hair';
 
-		case 105: typeName = 'Longcoat'; break;
+		case 105: return 'Longcoat';
 		
-		case 106: typeName = 'Pants'; break;
+		case 106: return 'Pants';
 		
 		case 180:
 		case 181:
 		case 182:
-		case 183: typeName = 'PetEquip'; break;
+		case 183: return 'PetEquip';
 
-		case 111: typeName = 'Ring'; break;
+		case 111: return 'Ring';
 
-		case 109: typeName = 'Shield'; break;
+		case 109: return 'Shield';
 		
-		case 107: typeName = 'Shoes'; break;
+		case 107: return 'Shoes';
 		
 		case 190:
 		case 191: // 192 is missing?
-		case 193: typeName = 'TamingMob'; break;
+		case 193: return 'TamingMob';
 
 		case 130:
 		case 131:
@@ -66,10 +64,13 @@ function getCharacterNXNode(itemId) {
 		case 148:
 		case 149:
 		case 160:
-		case 170: typeName = 'Weapon'; break;
+		case 170: return 'Weapon';
 		default: throw 'Unknown item category. Item: ' + itemId;
 	}
+}
 
+function getCharacterNXNode(itemId) {
+	var typeName = getItemCategoryName(itemId);
 	
 	return DataFiles.character.getPath(typeName + '/' + addLeftPadding(itemId, 8, '0') + '.img');
 }
@@ -87,9 +88,12 @@ ItemInfo.getEquipItem = function (itemId) {
 	if (node === null) return null;
 	
 	var infoNode = node.child('info');
-	
-	
+
 	var info = {};
+
+	var stringNXNode = DataFiles.string.getPath('Eqp.img/Eqp/' + getItemCategoryName(itemId) + '/' + itemId);
+	info.name = getOrDefault_NXData(stringNXNode.child('name'), '');
+	info.description = getOrDefault_NXData(stringNXNode.child('desc'), '');
 	
 	// Unknowns
 
@@ -246,25 +250,28 @@ ItemInfo.getIncExpItem = ItemInfo.getIncDropItem = function (itemId) {
 	var timeNode = infoNode.child('time');
 	
 	var days = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN', 'HOL'];
+	
+	var handleTimeNode = function (node) {
+		if (node.getData().indexOf(dayName) === 0) {
+
+			var result = /^([A-Z]{3}):([0-9]{2})-([0-9]{2})$/.exec(node.getData());
+			if (!result || result[2] > 24 || result[3] > 24) return; //throw 'Invalid inc drop/exp item info. Timespan info was not correct: ' + element.getData() + '. ItemId: ' + itemId;
+			
+			if (days.indexOf(result[1]) == -1) return; //throw 'Invalid inc drop/exp item info. Unknown day: ' + result[1] + '. ItemId: ' + itemId;
+
+			min = parseInt(result[2], 10);
+			max = parseInt(result[3], 10);
+			return false;
+		}
+	};
+	
 	for (var i = 0; i < 8; i++) {
 		var dayName = days[i];
 		var elements = new Array(24);
 		var min = -1;
 		var max = -1;
 		
-		timeNode.forEach(function (node) {
-			if (node.getData().indexOf(dayName) === 0) {
-
-				var result = /^([A-Z]{3}):([0-9]{2})-([0-9]{2})$/.exec(node.getData());
-				if (!result || result[2] > 24 || result[3] > 24) return; //throw 'Invalid inc drop/exp item info. Timespan info was not correct: ' + element.getData() + '. ItemId: ' + itemId;
-				
-				if (days.indexOf(result[1]) == -1) return; //throw 'Invalid inc drop/exp item info. Unknown day: ' + result[1] + '. ItemId: ' + itemId;
-
-				min = parseInt(result[2], 10);
-				max = parseInt(result[3], 10);
-				return false;
-			}
-		});
+		timeNode.forEach(handleTimeNode);
 		
 		for (var j = 0; j < 24; j++) {
 			elements[j] = j >= min && j < max;

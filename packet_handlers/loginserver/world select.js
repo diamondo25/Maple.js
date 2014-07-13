@@ -22,7 +22,8 @@ var showWorldsPacketHandler = function (client, reader) {
 		
 		var channels = world.channels;
 		packet.writeUInt8(channels);
-		for (var i = 1; i <= channels; i++) {
+		var i;
+		for (i = 1; i <= channels; i++) {
 			packet.writeString(worldName + '-' + i);
 			packet.writeUInt32(13132); // Online players
 			packet.writeUInt8(world.id);
@@ -31,7 +32,7 @@ var showWorldsPacketHandler = function (client, reader) {
 		}
 		
 		packet.writeUInt16(world.dialogs.length);
-		for (var i = 0; i < world.dialogs.length; i++) {
+		for (i = 0; i < world.dialogs.length; i++) {
 			var dialog = world.dialogs[i];
 			packet.writeUInt16(dialog.x);
 			packet.writeUInt16(dialog.y);

@@ -21,10 +21,32 @@ global.getMap = function getMap(mapId) {
 	return maps[mapId];
 };
 
+
+function findStringNXMapNode(mapId) {
+	var node = null;
+	
+	DataFiles.string.getPath('Map.img').forEach(function (categoryNode) {
+		categoryNode.forEach(function (mapNode) {
+			if (mapId == mapNode.getName()) {
+				node = mapNode;
+				return false;
+			}
+		});
+		if (node !== null) return false;
+	});
+	
+	return node;
+}
+
 function Map(nxNode) {
 	this.id = parseInt(nxNode.getName(), 10);
+	this.clients = [];
 	
 	var infoBlock = nxNode.child('info');
+
+	var stringNXNode = findStringNXMapNode(this.id);
+	this.fieldName = getOrDefault_NXData(stringNXNode.child('mapName'), '');
+	this.fieldStreetName = getOrDefault_NXData(stringNXNode.child('streetName'), '');
 	
 	this.fieldType = getOrDefault_NXData(infoBlock.child('fieldType'), 0);
 	this.returnMap = getOrDefault_NXData(infoBlock.child('returnMap'), 999999999);
@@ -34,6 +56,7 @@ function Map(nxNode) {
 	this.onUserEnter = getOrDefault_NXData(infoBlock.child('onUserEnter'), '');
 	this.lvLimit = getOrDefault_NXData(infoBlock.child('lvLimit'), 0);
 	this.lvForceMove = getOrDefault_NXData(infoBlock.child('lvLimit'), 10000);
+	this.dropsExpire = getOrDefault_NXData(infoBlock.child('everlast'), 0) === 0;
 	
 	var realNode = nxNode;
 	while (realNode.child('info').child('link')) {
@@ -42,31 +65,41 @@ function Map(nxNode) {
 	
 	
 	var portals = {};
-	if (realNode.child('portal')) {
-		realNode.child('portal').forEach(function (pPortalNode) {
-			var id = parseInt(pPortalNode.getName());
-			portals[id] = {
-				id: id,
-				name: getOrDefault_NXData(pPortalNode.child('pn'), ''),
-				type: getOrDefault_NXData(pPortalNode.child('pt'), ''),
-				toMap: getOrDefault_NXData(pPortalNode.child('tm'), ''),
-				toName: getOrDefault_NXData(pPortalNode.child('tn'), ''),
-				script: getOrDefault_NXData(pPortalNode.child('script'), ''),
-				x: getOrDefault_NXData(pPortalNode.child('x'), 0),
-				y: getOrDefault_NXData(pPortalNode.child('y'), 0)
-			};
-		});
-	}
+	
+	(realNode.child('portal') || []).forEach(function (portalNode) {
+		var id = parseInt(portalNode.getName(), 10);
+		portals[id] = {
+			id: id,
+			name: getOrDefault_NXData(portalNode.child('pn'), ''),
+			type: getOrDefault_NXData(portalNode.child('pt'), ''),
+			toMap: getOrDefault_NXData(portalNode.child('tm'), ''),
+			toName: getOrDefault_NXData(portalNode.child('tn'), ''),
+			script: getOrDefault_NXData(portalNode.child('script'), ''),
+			x: getOrDefault_NXData(portalNode.child('x'), 0),
+			y: getOrDefault_NXData(portalNode.child('y'), 0)
+		};
+	});
+
 	this.portals = portals;
 	
-	this.clients = [];
+	
+	this.playableMapArea = new PlayableMapArea(nxNode);
+	
+	this.bounds = this.playableMapArea.bounds;
+	this.center = {
+		x: this.bounds.right - this.bounds.left,
+		y: this.bounds.bottom - this.bounds.top
+	};
+	
+	this.lifePool = new LifePool(this, nxNode);
+	
 	console.log('Loaded map: ' + this.id);
 }
 
 Map.prototype = {
-	broadcastPacket: function (packet, skiclient) {
+	broadcastPacket: function (packet, skipClient) {
 		this.clients.forEach(function (client) {
-			if (client === skiclient) return;
+			if (client === skipClient) return;
 			client.sendPacket(packet);
 		});
 	},
@@ -78,8 +111,8 @@ Map.prototype = {
 		this.broadcastPacket(packets.map.getEnterMapPacket(client), client);
 
 		// Show other characters for player
-		this.clients.forEach(function (client) {
-			client.sendPacket(packets.map.getEnterMapPacket(client));
+		this.clients.forEach(function (loopClient) {
+			loopClient.sendPacket(packets.map.getEnterMapPacket(client));
 		});
 	},
 	

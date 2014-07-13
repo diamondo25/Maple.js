@@ -23,23 +23,6 @@
 			"dialogs": [			
 			],
 			"characterCreationDisabled": false
-		
-		},
-		"Bera": {
-			"privateIP": "127.0.0.1",
-			"publicIP": "83.80.148.175",
-			"portStart": 8520,
-			"id": 1,
-			"ribbon": 0,
-			"channels": 1,
-			"eventMessage": "Hello Thar",
-			"dialogs": [
-				{ "x": 0, "y": 0, "text": "CHOOSE THIS WORLD PL0X" }
-			
-			],
-			"characterCreationDisabled": false
-		
 		}
-	
 	}
 }

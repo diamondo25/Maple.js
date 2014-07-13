@@ -32,6 +32,7 @@ PacketHandler.setHandler(0x0026, function (client, reader) {
 	}
 	
 	var mapPacket = packets.map;
+	var map = getMap(client.character.mapId);
 	
 	var opcode = reader.readInt32();
 	
@@ -42,6 +43,16 @@ PacketHandler.setHandler(0x0026, function (client, reader) {
 				client.disconnect('Possible deadhack');
 				return;
 			}
+			
+
+			var newMap = map.returnMap == 999999999 ? map : getMap(map.returnMap);
+			if (newMap === null) {
+				client.sendPacket(mapPacket.getPortalErrorPacket(mapPacket.PortalBlockedErrors.CANNOT_GO_TO_THAT_PLACE));
+			}
+			else {
+				mapPacket.changeMap(client, newMap.id, 0);
+			}
+			
 			break;
 
 		case -1:
@@ -50,7 +61,6 @@ PacketHandler.setHandler(0x0026, function (client, reader) {
 			var x = reader.readUInt16();
 			var y = reader.readUInt16();
 			
-			var map = getMap(client.character.mapId);
 			var portal = map.getPortalByName(portalName);
 			if (portal === null) {
 				client.sendPacket(mapPacket.getPortalErrorPacket(mapPacket.PortalBlockedErrors.CANNOT_GO_TO_THAT_PLACE));

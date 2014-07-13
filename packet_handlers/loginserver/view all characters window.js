@@ -51,14 +51,14 @@ PacketHandler.setHandler(0x000D, function (client, reader) {
 	
 	
 	
-	for (var worldId in worlds) {
+	for (worldId in worlds) {
 		if (worlds[worldId].length === 0) continue;
 		sendCharacters(client, worldId, worlds[worldId]);
 	}
 });
 
 
-function EnterChannel(client, characterId, worldId) {
+function enterChannel(client, characterId, worldId) {
 	var world = getWorldInfoById(worldId);
 	var channel = (world.channels * Math.random()) >>> 0;
 	
@@ -84,10 +84,10 @@ PacketHandler.setHandler(0x0020, function (client, reader) {
 	var pic = reader.readString();
 	var characterId = reader.readUInt32();
 	var worldId = reader.readUInt32();
-	var macAddr = reader.readString();
-	var macAddrNoDashes = reader.readString();
+	var macAddresses = reader.readString();
+	var deviceUID = reader.readString();
 	
-	EnterChannel(client, characterId, worldId); // Todo: Add check if the character is in this world AND from the same account
+	enterChannel(client, characterId, worldId); // Todo: Add check if the character is in this world AND from the same account
 });
 
 PacketHandler.setHandler(0x000E, function (client, reader) {
@@ -99,8 +99,8 @@ PacketHandler.setHandler(0x000E, function (client, reader) {
 	
 	var characterId = reader.readUInt32();
 	var worldId = reader.readUInt32();
-	var macAddr = reader.readString();
-	var macAddrNoDashes = reader.readString();
+	var macAddresses = reader.readString();
+	var deviceUID = reader.readString();
 	
-	EnterChannel(client, characterId, worldId); // Todo: Add check if the character is in this world AND from the same account
+	enterChannel(client, characterId, worldId); // Todo: Add check if the character is in this world AND from the same account
 });
